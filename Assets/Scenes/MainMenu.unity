@@ -973,6 +973,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuManager
   startButton: {fileID: 1720766070}
+  keyboardControllerUI: {fileID: 1116016731}
+  gamepadControllerUI: {fileID: 234984371}
+  switchInputButton: {fileID: 1775265654}
 --- !u!4 &1240447945
 Transform:
   m_ObjectHideFlags: 0
@@ -1120,7 +1123,6 @@ GameObject:
   - component: {fileID: 1775265653}
   - component: {fileID: 1775265655}
   - component: {fileID: 1775265654}
-  - component: {fileID: 1775265656}
   m_Layer: 5
   m_Name: Controller
   m_TagString: Untagged
@@ -1201,20 +1203,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1775265652}
   m_CullTransparentMesh: 1
---- !u!114 &1775265656
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1775265652}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 54078bd8e9e323b4b9388187be6cd258, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ControllerChange
-  keyboardControllerUI: {fileID: 1116016731}
-  gamepadControllerUI: {fileID: 234984371}
 --- !u!1 &1912053571
 GameObject:
   m_ObjectHideFlags: 0

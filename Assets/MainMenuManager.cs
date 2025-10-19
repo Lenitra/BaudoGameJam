@@ -7,11 +7,54 @@ public class MainMenuManager : MonoBehaviour
 
     [SerializeField] private Button startButton;
 
+    [SerializeField] private GameObject keyboardControllerUI;
+    [SerializeField] private GameObject gamepadControllerUI;
+
+    [SerializeField] private Button switchInputButton;
 
     void Start()
     {
+        switchInputButton.onClick.AddListener(SwitchInputMethod);
         startButton.onClick.AddListener(StartGame);
+
+        
+        if (!PlayerPrefs.HasKey("InputMethod"))
+        {
+            PlayerPrefs.SetString("InputMethod", "Keyboard");
+        }
+
+        ApplyGoodObject();
     }
+
+    private void SwitchInputMethod()
+    {
+        // Determine new input method (toggle)
+        string newInputMethod = keyboardControllerUI.activeSelf ? "Gamepad" : "Keyboard";
+
+        // Keep keyboard if trying to switch to gamepad but no gamepad connected
+        if (newInputMethod == "Gamepad" && Gamepad.current == null)
+        {
+            newInputMethod = "Keyboard";
+        }
+
+        // Save and apply the new input method
+        PlayerPrefs.SetString("InputMethod", newInputMethod);
+        PlayerPrefs.Save();
+
+        ApplyGoodObject();
+        
+    }
+
+
+    private void ApplyGoodObject()
+    {
+
+        bool showGamepad = PlayerPrefs.GetString("InputMethod") == "Gamepad";
+
+        keyboardControllerUI.SetActive(!showGamepad);
+        gamepadControllerUI.SetActive(showGamepad);
+    }
+
 
     void Update()
     {
