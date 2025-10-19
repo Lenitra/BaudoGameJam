@@ -6,11 +6,6 @@ public class GameManager : MonoBehaviour
     [Header("Références")]
     [SerializeField] private PlaneControler planeControler;
 
-    void Start()
-    {
-        planeControler = FindFirstObjectByType<PlaneControler>();
-    }
-
     public void WinGame()
     {
         Debug.Log("Bien joué ! Vous avez terminé le jeu !");
@@ -28,7 +23,7 @@ public class GameManager : MonoBehaviour
     public IEnumerator CrashSequence()
     {
         // Attendre un court instant avant de notifier la perte
-        yield return new WaitForSeconds(5f);
+        yield return new WaitForSeconds(3f);
         // Notifier le GameManager de la perte
         LooseGame();
     }
