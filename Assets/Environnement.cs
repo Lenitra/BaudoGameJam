@@ -5,14 +5,27 @@ public class Environnement : MonoBehaviour
 {
     [SerializeField] private Light globalLight;
     [SerializeField] private GameObject waterParrentObject;
+    [SerializeField] private Material skyBoxMaterial;
+
+    [SerializeField] private Color DefaultWaterColor = new Color(0.0f, 0.5f, 0.7f);
 
 
 
     void Awake()
     {
-        ChangeWaterColor(Color.red);
+        RenderSettings.skybox = skyBoxMaterial;
+        ChangeWaterColor(DefaultWaterColor);
+        // ChangeSkyBoxColor(DefaultWaterColor);
+        ChangeSkyColor(DefaultWaterColor);
+
     }
 
+private void ChancheLightColorIntensity(Color color)
+    {
+        globalLight.color = color;
+        float intensity = (color.r + color.g + color.b) / 3.0f;
+        globalLight.intensity = intensity;
+    }
 
     private void ChangeWaterColor(Color color)
     {
@@ -45,15 +58,39 @@ public class Environnement : MonoBehaviour
                     }
                     if (mat.HasProperty("_CaveColor"))
                     {
-                        mat.SetColor("_CaveColor", color * 0.6f);
+                        mat.SetColor("_CaveColor", color * 0.2f);
                     }
                     if (mat.HasProperty("_SecondaryFoamColor"))
                     {
                         mat.SetColor("_SecondaryFoamColor", color * 0.5f);
+                    }
+                    if (mat.HasProperty("_SurfaceFoamColor"))
+                    {
+                        float saturationMoyenne = (color.r + color.g + color.b) / 3.0f;
+                        float foamIntensifier = 3.0f;
+                        Color foamColor = new Color(saturationMoyenne * foamIntensifier, saturationMoyenne * foamIntensifier, saturationMoyenne * foamIntensifier);
+                        mat.SetColor("_SurfaceFoamColor", foamColor);
                     }
                 }
             }
         }
     }
 
+
+    private void ChangeSkyColor(Color color)
+    {
+        if (skyBoxMaterial.HasProperty("_SkyColor"))
+        {
+            skyBoxMaterial.SetColor("_SkyColor", color);
+        }
+        // Faire un dégradé plus foncé sur EquatorColor et GroundColor
+        if (skyBoxMaterial.HasProperty("_EquatorColor"))
+        {
+            skyBoxMaterial.SetColor("_EquatorColor", color * 0.7f);
+        }
+        if (skyBoxMaterial.HasProperty("_GroundColor"))
+        {
+            skyBoxMaterial.SetColor("_GroundColor", color * 0.3f);
+        }
+    }
 }

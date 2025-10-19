@@ -241,8 +241,8 @@ Material:
     - _EnableSunMoonMask: 1
     - _EnableTwinkling: 1
     - _EqHeight: 0.419
-    - _EquatorHeight: 0.7
-    - _EquatorSmoothness: 0.8
+    - _EquatorHeight: 0.301
+    - _EquatorSmoothness: 0.224
     - _Exposure: 0
     - _Fade: 0
     - _Float0: -1
@@ -297,15 +297,15 @@ Material:
     - _StarsLayer: 3
     - _StarsMaskPower: 1
     - _StarsRotation: 360
-    - _StarsRotationSpeed: 0.01
+    - _StarsRotationSpeed: 0.05
     - _StarsSize: 0.666
     - _StarsSunMask: 0.075
     - _SunCat: 1
-    - _SunDirectionMode: 0
-    - _SunIntensity: 2
+    - _SunDirectionMode: 1
+    - _SunIntensity: 1
     - _SunRadiusB: 0
     - _SunRadoisA: 0
-    - _SunSize: 0.6
+    - _SunSize: 1
     - _SunorMoon: 1
     - _TITLE: 1
     - _ToggleSwitch0: 0
@@ -339,19 +339,19 @@ Material:
     - _Color2: {r: 0.059472326, g: 0.25068596, b: 0.8088235, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Eq: {r: 1, g: 0.6769777, b: 0.330882, a: 0}
-    - _EquatorColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EquatorColor: {r: 0.7, g: 0.48541486, b: 0, a: 0.7}
     - _Ground: {r: 0.4779411, g: 0.43111518, b: 0.23545504, a: 0}
-    - _GroundColor: {r: 0, g: 0, b: 0, a: 1}
+    - _GroundColor: {r: 0.3, g: 0.20803495, b: 0, a: 0.3}
     - _MoonColor: {r: 1, g: 1, b: 1, a: 1}
     - _MoonDirection: {r: 1, g: 0, b: 0, a: 0}
     - _Sky: {r: 0.6691177, g: 0.29519898, b: 0.29519898, a: 0}
-    - _SkyColor: {r: 0.109277725, g: 0, b: 0.5372549, a: 1}
+    - _SkyColor: {r: 1, g: 0.6934498, b: 0, a: 1}
     - _SkyboxRotationAxis: {r: 0, g: 1, b: 0, a: 0}
     - _Skycol: {r: 0.27941146, g: 0.64219046, b: 1, a: 0}
     - _StarsColor: {r: 0.98490566, g: 0.9847385, b: 0.86783195, a: 1}
     - _StarsRotationAxis: {r: 0, g: 1, b: 0, a: 0}
     - _SunColor: {r: 0.5514706, g: 0.8515212, b: 1, a: 1}
-    - _SunDirection: {r: 0, g: 0, b: 1, a: 0}
+    - _SunDirection: {r: -33.13, g: -0.89, b: 3.69, a: 0}
     - _Tint: {r: 1, g: 1, b: 1, a: 0}
     - _Vector1: {r: 0, g: 1, b: 1, a: 0}
     - _water: {r: 0.5, g: 0.5, b: 0.5, a: 1}

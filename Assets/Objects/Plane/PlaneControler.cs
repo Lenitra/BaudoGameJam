@@ -42,7 +42,13 @@ public class PlaneControler : MonoBehaviour
     private bool isCrashed = false;
 
     void Awake()
-    {
+    {        
+        // get the playerprefs to know which controller to use
+        if (PlayerPrefs.GetString("InputMethod") != "Gamepad") 
+        {
+            this.enabled = false;
+            return;
+        }
         gameManager = FindFirstObjectByType<GameManager>();
         rb = GetComponent<Rigidbody>();
         rb.useGravity = false;       // On gère la gravité manuellement

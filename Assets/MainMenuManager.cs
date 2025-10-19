@@ -4,6 +4,15 @@ using UnityEngine.InputSystem;
 
 public class MainMenuManager : MonoBehaviour
 {
+
+    [SerializeField] private Button startButton;
+
+
+    void Start()
+    {
+        startButton.onClick.AddListener(StartGame);
+    }
+
     void Update()
     {
         // Vérifier si n'importe quelle touche du clavier est pressée
