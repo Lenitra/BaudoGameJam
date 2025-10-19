@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -23,6 +24,14 @@ public class GameManager : MonoBehaviour
         UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
     }
 
+
+    public IEnumerator CrashSequence()
+    {
+        // Attendre un court instant avant de notifier la perte
+        yield return new WaitForSeconds(5f);
+        // Notifier le GameManager de la perte
+        LooseGame();
+    }
 
 
 

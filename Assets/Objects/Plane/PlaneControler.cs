@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
+using System.Collections;
+using Unity.VisualScripting;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PlaneControler : MonoBehaviour
@@ -30,6 +32,7 @@ public class PlaneControler : MonoBehaviour
     private float currentSpeed;
     private Gamepad gamepad;
     private GameManager gameManager;
+    private bool isCrashed = false;
 
     void Awake()
     {
@@ -44,7 +47,6 @@ public class PlaneControler : MonoBehaviour
     void FixedUpdate()
     {
         gamepad = Gamepad.current;
-
         HandleInput();
         HandleGravityByIncline();
         ApplyMovement();
@@ -145,13 +147,31 @@ public class PlaneControler : MonoBehaviour
     // Gestion des collisions
     // ------------------------------------------------------------
     private void OnCollisionEnter(Collision collision)
-    {
-        // Instancier un effet de crash à l'endroit de la collision
-        Instantiate(crashEffectPrefab, collision.contacts[0].point, Quaternion.identity);
-        // Supprimer this
-        Destroy(gameObject);
+    {        
+        isCrashed = true;
+        // Ajouter des effets de crash ici (ex: son, particules, etc.)
+        Instantiate(crashEffectPrefab, transform.position, Quaternion.identity);
 
-        gameManager.LooseGame();
+        // Sequence de crash qui notifie le GameManager
+        StartCoroutine(gameManager.CrashSequence());
+
+        // Désactiver tout les meshes de l'avion pour simuler la destruction
+        foreach (MeshRenderer mr in GetComponentsInChildren<MeshRenderer>())
+        {
+            mr.enabled = false;
+        }
+
+        // Désactiver les rigidbodies pour arrêter tout mouvement
+        foreach (Rigidbody r in GetComponentsInChildren<Rigidbody>())
+        {
+            r.isKinematic = true;
+        }
+
+        // Désactiver les colliders pour éviter d'autres collisions
+        foreach (Collider c in GetComponentsInChildren<Collider>())
+        {
+            c.enabled = false;
+        }
 
     }
 
@@ -169,12 +189,13 @@ public class PlaneControler : MonoBehaviour
             }
         }
     }
-    
+
 
     public void ApplyWindForce(Vector3 force)
     {
         rb.AddForce(force);
     }
+    
 
 
 }
