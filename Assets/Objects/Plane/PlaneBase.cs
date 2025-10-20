@@ -8,26 +8,31 @@ public abstract class PlaneBase : MonoBehaviour
 {
     [Header("Vitesse")]
     private readonly float acceleration = 5f;       // puissance moteur
-    private readonly float maxSpeed = 100f;             // vitesse max
-    private readonly float minSpeed = 5f;                // vitesse min
+    private readonly float maxSpeed = 50f;             // vitesse max
+    private readonly float spawnSpeed = 25f;                // vitesse min
     private readonly float gravityInfluence = 10f;     // effet de la gravité sur la vitesse (selon l'inclinaison haut/bas de l'avion)
 
     [Header("Contrôles")]
-    private readonly float pitchSpeed = 80f;           // tangage, haut/bas
-    private readonly float rollSpeed = 120f;           // roulis, gauche/droite
+    private readonly float pitchSpeed = 120f;           // tangage, haut/bas
+    private readonly float rollSpeed = 180f;           // roulis, gauche/droite
     private readonly float controlInertia = 2.5f;        // inertie des contrôles (plus élevé = plus réactif)
     private readonly float rollStabilizationForce = 0.5f; // force d'auto-nivelage du roll, remise à plat (plus élevé = plus rapide)
-    private readonly float rollToPitchInfluence = 7.5f; // influence du roll sur le pitch (virage lors d'une inclinaison, plus élevé = virages plus serrés)
+    private readonly float rollToYawInfluence = 30f; // influence du roll sur le yaw (virage lors d'une inclinaison, plus élevé = virages plus serrés)
     private readonly float stallSpeed = 15f;           // vitesse en dessous de laquelle l'avion pique naturellement
-
 
     [Header("UI (optionnel)")]
     [SerializeField] private TextMeshProUGUI speedText;
     [SerializeField] private TextMeshProUGUI altitudeText;
+    [SerializeField] private TextMeshProUGUI checkpointIndication;
 
 
     [Header("Visuals effects")]
     [SerializeField] private GameObject crashEffectPrefab;
+    [SerializeField] private GameObject validateCheckpointEffectPrefab;
+
+    [Header("Elements du jeu")]
+    private GameObject[] checkpoints;
+    private GameObject finishLine;
 
 
     private float crashVibrationIntensity = 1f; // Intensité de la vibration au crash
@@ -49,13 +54,13 @@ public abstract class PlaneBase : MonoBehaviour
     // Propriétés pour accéder aux constantes depuis les classes dérivées
     protected float Acceleration => acceleration;
     protected float MaxSpeed => maxSpeed;
-    protected float MinSpeed => minSpeed;
+    protected float SpawnSpeed => spawnSpeed;
     protected float GravityInfluence => gravityInfluence;
     protected float PitchSpeed => pitchSpeed;
     protected float RollSpeed => rollSpeed;
     protected float ControlInertia => controlInertia;
     protected float RollStabilizationForce => rollStabilizationForce;
-    protected float RollToPitchInfluence => rollToPitchInfluence;
+    protected float RollToYawInfluence => rollToYawInfluence;
     protected float StallSpeed => stallSpeed;
 
     protected virtual void Awake()
@@ -65,7 +70,7 @@ public abstract class PlaneBase : MonoBehaviour
         rb.useGravity = false;       // On gère la gravité manuellement
         rb.linearDamping = 0.5f;
         rb.angularDamping = 2f;
-        currentSpeed = minSpeed;     // L'avion démarre à la vitesse minimale
+        currentSpeed = spawnSpeed;     // L'avion démarre à la vitesse minimale
     }
 
     protected virtual void FixedUpdate()
@@ -122,32 +127,29 @@ public abstract class PlaneBase : MonoBehaviour
         // Plus l'avion est incliné, plus la force de redressement est forte
         float rollCorrection = -currentRoll * rollStabilizationForce * Time.fixedDeltaTime;
 
-        // Influence du roll sur le pitch : quand l'avion est en roll, il tire légèrement vers le haut
-        // Calculer le ratio d'inclinaison (0 à 90° = 0% à 100%)
-        float rollRatio = Mathf.Abs(currentRoll) / 90f; // Valeur entre 0 et 1+ (peut dépasser 1 si > 90°)
-        rollRatio = Mathf.Clamp01(rollRatio); // Limiter entre 0 et 1
+        // Influence du roll sur le yaw GLOBAL : rotation horizontale par rapport au sol
+        float rollRatio = Mathf.Abs(currentRoll) / 90f;
+        rollRatio = Mathf.Clamp01(rollRatio);
 
-        // Appliquer une courbe pour avoir une transition naturelle (presque rien à 0°, fort à 90°)
-        // On utilise une courbe exponentielle pour accentuer l'effet aux angles élevés
         float rollInfluenceFactor = rollRatio * rollRatio; // Courbe quadratique
 
-        // Facteur de vitesse : plus l'avion va vite, plus la correction est forte
-        float speedRatio = Mathf.Clamp01(currentSpeed / maxSpeed); // Ratio de vitesse entre 0 et 1
-        float speedFactor = 1f + (speedRatio * 2f); // Entre 1x (vitesse 0) et 3x (vitesse max)
+        float speedRatio = Mathf.Clamp01(currentSpeed / maxSpeed);
+        float speedFactor = 1f + (speedRatio * 2f);
 
-        float rollInfluence = rollInfluenceFactor * rollToPitchInfluence * speedFactor * Time.fixedDeltaTime;
-        finalPitch -= rollInfluence; // Négatif = vers le haut (pitch up)
+        // Calculer le yaw qui sera appliqué autour de l'axe Y GLOBAL (vertical du monde)
+        float rollInfluence = rollInfluenceFactor * rollToYawInfluence * speedFactor * Time.fixedDeltaTime;
+        float globalYaw = -Mathf.Sign(currentRoll) * rollInfluence;
 
         // Rotation basée sur les entrées + correction d'auto-nivelage
         float finalRoll = (rollInput * rollSpeed * Time.fixedDeltaTime) + rollCorrection;
 
-        Quaternion rotationInput = Quaternion.Euler(
-            finalPitch,
-            0f, // Pas de yaw
-            finalRoll
-        );
+        // Appliquer d'abord la rotation locale (pitch et roll)
+        Quaternion localRotation = Quaternion.Euler(finalPitch, 0f, finalRoll);
+        rb.MoveRotation(rb.rotation * localRotation);
 
-        rb.MoveRotation(rb.rotation * rotationInput);
+        // Puis appliquer la rotation globale autour de l'axe Y du monde (virage horizontal)
+        Quaternion globalRotation = Quaternion.Euler(0f, globalYaw, 0f);
+        rb.MoveRotation(globalRotation * rb.rotation);
 
         // Déplacement selon la vitesse actuelle
         rb.linearVelocity = transform.forward * currentSpeed;
@@ -159,7 +161,7 @@ public abstract class PlaneBase : MonoBehaviour
     protected void UpdateUI()
     {
         if (speedText != null)
-            speedText.text = $"Speed: {Mathf.RoundToInt(currentSpeed)}";
+            speedText.text = $"{Mathf.RoundToInt(currentSpeed*5)} km/h";
         if (altitudeText != null)
             altitudeText.text = $"Altitude: {Mathf.RoundToInt(transform.position.y)}";
     }
@@ -223,6 +225,12 @@ public abstract class PlaneBase : MonoBehaviour
     // ------------------------------------------------------------
     protected virtual void OnTriggerEnter(Collider other)
     {
+
+        if (other.gameObject.CompareTag("Checkpoint"))
+        {
+            Instantiate(validateCheckpointEffectPrefab, transform);
+        }
+
         // On vérifie le tag de l'objet avec lequel on entre en collision
         if (other.gameObject.CompareTag("Finish"))
         {

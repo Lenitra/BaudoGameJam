@@ -57,6 +57,6 @@ public class PlaneControlerClavier : PlaneBase
 
         // Ajuster la vitesse
         currentSpeed += throttleInput * Acceleration * Time.fixedDeltaTime;
-        currentSpeed = Mathf.Clamp(currentSpeed, MinSpeed, MaxSpeed);
+        currentSpeed = Mathf.Clamp(currentSpeed, SpawnSpeed, MaxSpeed);
     }
 }

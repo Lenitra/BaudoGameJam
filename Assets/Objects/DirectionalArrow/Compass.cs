@@ -1,44 +1,46 @@
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Compass : MonoBehaviour
 {
-    [SerializeField] private GameObject[] finishObjects; // Tableau pour stocker les objets Finish
-
-    [SerializeField] private GameObject[] checkpointObjects; // Cible que la boussole doit pointer
-
-
+    private List<GameObject> checkpointList; // Liste dynamique des checkpoints
+    private GameObject finishObject; // L'objet finish
 
     void Awake()
     {
+        // Trouver tous les checkpoints et les ajouter à la liste
+        checkpointList = GameObject.FindGameObjectsWithTag("Checkpoint").ToList();
 
-        // Trouver le target : un objet qui à pour tag Finish
-        finishObjects = GameObject.FindGameObjectsWithTag("Finish");
+        // Trouver le premier objet Finish
+        GameObject[] finishObjects = GameObject.FindGameObjectsWithTag("Finish");
+        finishObject = finishObjects.Length > 0 ? finishObjects[0] : null;
 
-        // Trouver le target : un objet qui à pour tag Checkpoint
-        checkpointObjects = GameObject.FindGameObjectsWithTag("Checkpoint");
-
-
-        if (finishObjects.Length == 0 && checkpointObjects.Length == 0)
+        if (finishObject == null && checkpointList.Count == 0)
         {
-            this.gameObject.SetActive(false); // Désactiver la boussole si aucun objet Finish ou Checkpoint n'est trouvé
+            this.gameObject.SetActive(false); // Désactiver la boussole si aucun objectif n'est trouvé
         }
-
     }
 
     void Update()
     {
         GameObject target = null;
 
-        // Priorité aux checkpoints
-        if (checkpointObjects.Length > 0)
+        // Nettoyer la liste des checkpoints détruits (null)
+        checkpointList.RemoveAll(checkpoint => checkpoint == null);
+
+        // Priorité aux checkpoints : pointer vers le premier checkpoint actif
+        if (checkpointList.Count > 0)
         {
-            target = checkpointObjects[0]; // Pointer vers le premier checkpoint trouvé
+            target = checkpointList[0];
         }
-        else if (finishObjects.Length > 0)
+        // Si plus de checkpoints, pointer vers le finish
+        else if (finishObject != null)
         {
-            target = finishObjects[0]; // Pointer vers le premier finish trouvé
+            target = finishObject;
         }
 
+        // Orienter la boussole vers la cible
         if (target != null)
         {
             Vector3 directionToTarget = target.transform.position - transform.position;

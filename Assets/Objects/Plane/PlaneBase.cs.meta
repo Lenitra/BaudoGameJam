@@ -1,2 +1,16 @@
 fileFormatVersion: 2
 guid: 42fa5e53acf72f54db5d364adea126f2
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - speedText: {instanceID: 0}
+  - altitudeText: {instanceID: 0}
+  - checkpointIndication: {instanceID: 0}
+  - crashEffectPrefab: {fileID: 1248331578108354, guid: 9d5fa29d0b3721b4fa415bea4e1e469a, type: 3}
+  - validateCheckpointEffectPrefab: {fileID: 1850347689673190, guid: 3afd6e3c5bf4dd748a78bfb80c4ab7d8, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
