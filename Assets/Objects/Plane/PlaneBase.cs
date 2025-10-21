@@ -18,7 +18,7 @@ public abstract class PlaneBase : MonoBehaviour
     private readonly float rollSpeed = 100f;           // roulis, gauche/droite
     private readonly float controlInertia = 5f;        // inertie des contrôles (plus élevé = plus réactif)
     private readonly float rollStabilizationForce = 0.7f; // force d'auto-nivelage du roll, remise à plat (plus élevé = plus rapide)
-    private readonly float rollToYawInfluence = 10f; // influence du roll sur le yaw (virage lors d'une inclinaison, plus élevé = virages plus serrés)
+    private readonly float rollToYawInfluence = 15f; // influence du roll sur le yaw (virage lors d'une inclinaison, plus élevé = virages plus serrés)
     private readonly float stallSpeed = 10f;            // vitesse en dessous de laquelle l'avion pique naturellement
     private readonly float stallPitchFactor = 50f;    // facteur d'inclinaison en piqué lors du décrochage (plus élevé = pique plus fort)
  
