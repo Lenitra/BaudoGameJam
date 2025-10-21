@@ -1,10 +1,11 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
 public class Environnement : MonoBehaviour
 {
     [SerializeField] private Light globalLight;
-    [SerializeField] private GameObject waterParrentObject;
+    [SerializeField] private GameObject waterParentObject;
     [SerializeField] private Material skyBoxMaterial;
 
     [SerializeField] private Color DefaultWaterColor = new Color(0.0f, 0.5f, 0.7f);
@@ -20,7 +21,7 @@ public class Environnement : MonoBehaviour
 
     }
 
-private void ChancheLightColorIntensity(Color color)
+    private void ChangeLightColorIntensity(Color color)
     {
         globalLight.color = color;
         float intensity = (color.r + color.g + color.b) / 3.0f;
@@ -29,7 +30,9 @@ private void ChancheLightColorIntensity(Color color)
 
     private void ChangeWaterColor(Color color)
     {
-        foreach (Transform child in waterParrentObject.transform)
+        color /= 10;
+        color.a = 1;
+        foreach (Transform child in waterParentObject.transform)
         {
             Renderer renderer = child.GetComponent<Renderer>();
             if (renderer != null)
@@ -54,21 +57,27 @@ private void ChancheLightColorIntensity(Color color)
                     }
                     if (mat.HasProperty("_HorizonColor"))
                     {
-                        mat.SetColor("_HorizonColor", color);
+                        mat.SetColor("_HorizonColor", new Color(color.r * 0.3f, color.g * 0.3f, color.b * 0.3f, 1.0f));
                     }
-                    if (mat.HasProperty("_CaveColor"))
+                    if (mat.HasProperty("_DeepColor"))
                     {
-                        mat.SetColor("_CaveColor", color * 0.2f);
+                        mat.SetColor("_DeepColor", color * 0.7f);
+                    }
+                    if (mat.HasProperty("_SpectacularColor"))
+                    {
+                        Color specColor = new Color(color.r * 1.1f, color.g * 1.1f, color.b * 1.1f, 0.1f);
+                        mat.SetColor("_SpectacularColor", specColor);
+
                     }
                     if (mat.HasProperty("_SecondaryFoamColor"))
                     {
-                        mat.SetColor("_SecondaryFoamColor", color * 0.5f);
+                        Color secondaryFoamColor = new Color(color.r, color.g, color.b, 0.3f);
+                        mat.SetColor("_SecondaryFoamColor", secondaryFoamColor);
                     }
                     if (mat.HasProperty("_SurfaceFoamColor"))
                     {
-                        float saturationMoyenne = (color.r + color.g + color.b) / 3.0f;
-                        float foamIntensifier = 3.0f;
-                        Color foamColor = new Color(saturationMoyenne * foamIntensifier, saturationMoyenne * foamIntensifier, saturationMoyenne * foamIntensifier);
+                        float saturationMax = Mathf.Max(color.r, Mathf.Max(color.g, color.b)) * 1.1f;
+                        Color foamColor = new Color(saturationMax, saturationMax, saturationMax, 0.4f);
                         mat.SetColor("_SurfaceFoamColor", foamColor);
                     }
                 }

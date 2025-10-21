@@ -25,6 +25,28 @@ public class PlaneControler : PlaneBase
         // Trigger droit = accélérer, gauche = ralentir
         float accelTrigger = gamepad.rightTrigger.ReadValue();
         float brakeTrigger = gamepad.leftTrigger.ReadValue();
+
+        // Désactiver le frein si la vitesse est inférieure à stallSpeed
+        if (currentSpeed < StallSpeed)
+        {
+            brakeTrigger = 0f;
+        }
+
+        // Bloquer l'accélération si au-dessus de la limite d'altitude
+        // SAUF si l'avion pointe vers le bas (en piqué)
+        if (isAboveAltitudeLimit)
+        {
+            // Vérifier si l'avion pointe vers le bas
+            float incline = Vector3.Dot(transform.forward, Vector3.up);
+            // incline < 0 = pique vers le bas, incline > 0 = monte
+
+            // Bloquer l'accélération seulement si on ne pique pas
+            if (incline >= -0.2f) // Seuil de -0.2 pour permettre un peu de tolérance
+            {
+                accelTrigger = 0f;
+            }
+        }
+
         throttleInput = accelTrigger - brakeTrigger;
 
         // Stick gauche = pitch / roll
@@ -41,6 +63,6 @@ public class PlaneControler : PlaneBase
 
         // Ajuster la vitesse selon les triggers
         currentSpeed += throttleInput * Acceleration * Time.fixedDeltaTime;
-        currentSpeed = Mathf.Clamp(currentSpeed, -MaxSpeed, MaxSpeed); // Vitesse peut être négative
+        // Note: Le clamp de vitesse est fait dans ApplyMovement() de la classe parente
     }
 }
