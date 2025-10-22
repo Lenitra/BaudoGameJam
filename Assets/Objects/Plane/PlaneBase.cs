@@ -122,7 +122,7 @@ public abstract class PlaneBase : MonoBehaviour
         float incline = Vector3.Dot(transform.forward, Vector3.up);
         // incline > 0 = monte, incline < 0 = pique
 
-        // On applique un effet de gravité sur la vitesse
+        // On applique un effet de gravité sur la vitesse (TOUJOURS, même au-dessus de l'altitude max)
         // Plus l'avion monte, plus il perd de vitesse (peut devenir négatif = marche arrière).
         // Plus il pique, plus il en gagne.
         float gravityEffect = -incline * gravityInfluence * Time.fixedDeltaTime;
@@ -142,8 +142,9 @@ public abstract class PlaneBase : MonoBehaviour
             altitudeRatio = Mathf.Min(altitudeExcess * altitudeEffectScale, 3f); // Plafonné à 3 pour éviter des valeurs extrêmes
 
             // Ralentissement progressif : plus on monte, plus on ralentit
-            // Ne s'applique que si la vitesse est supérieure à la vitesse minimale
-            if (currentSpeed > altitudeMinSpeed)
+            // Ne s'applique que si l'avion n'est PAS incliné vers le bas (incline >= 0)
+            // et si la vitesse est supérieure à la vitesse minimale
+            if (currentSpeed > altitudeMinSpeed && incline >= 0)
             {
                 float slowdownForce = altitudeSlowdownBase * (1f + altitudeRatio * 2f);
                 currentSpeed -= slowdownForce * Time.fixedDeltaTime;
@@ -259,7 +260,7 @@ public abstract class PlaneBase : MonoBehaviour
         if (speedText != null)
             speedText.text = $"{Mathf.RoundToInt(currentSpeed*10)} km/h";
         if (altitudeText != null)
-            altitudeText.text = $"Altitude: {Mathf.RoundToInt(transform.position.y)*4}m\n{altitudeSoftLimit*4}m max";
+            altitudeText.text = $"Altitude: {(Mathf.RoundToInt(transform.position.y)*4)-550}m\n{(altitudeSoftLimit*4)-550}m max";
     }
 
     // ------------------------------------------------------------
@@ -268,6 +269,11 @@ public abstract class PlaneBase : MonoBehaviour
     protected virtual void OnCollisionEnter(Collision collision)
     {
         isCrashed = true;
+
+        // Sauvegarder l'état de défaite
+        PlayerPrefs.SetString("gamestate", "lose");
+        PlayerPrefs.Save();
+
         // Ajouter des effets de crash ici (ex: son, particules, etc.)
         if (crashEffectPrefab != null)
             Instantiate(crashEffectPrefab, transform.position, Quaternion.identity);
@@ -339,6 +345,18 @@ public abstract class PlaneBase : MonoBehaviour
             // Détruire le GameObject du checkpoint
             Destroy(checkpointObject);
 
+            // Si c'était le dernier checkpoint, victoire !
+            if (checkpoints.Count == 0)
+            {
+                PlayerPrefs.SetString("gamestate", "win");
+                PlayerPrefs.Save();
+
+                if (gameManager != null)
+                {
+                    gameManager.WinGame();
+                }
+            }
+
             // Mettre à jour le compass pour pointer vers le prochain checkpoint
             SetUpCompassTarget();
         }
@@ -346,6 +364,10 @@ public abstract class PlaneBase : MonoBehaviour
         // On vérifie le tag de l'objet avec lequel on entre en collision
         if (other.gameObject.CompareTag("Finish") && checkpoints.Count == 0)
         {
+            // Sauvegarder l'état de victoire
+            PlayerPrefs.SetString("gamestate", "win");
+            PlayerPrefs.Save();
+
             if (gameManager != null)
             {
                 gameManager.WinGame();

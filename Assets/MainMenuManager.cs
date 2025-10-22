@@ -1,11 +1,15 @@
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class MainMenuManager : MonoBehaviour
 {
 
     [SerializeField] private Button startButton;
+    [SerializeField] private Button restartButton;
+    [SerializeField] private Button changelvlButton;
+    [SerializeField] private TMPro.TextMeshProUGUI modalMessage;
+
 
     [SerializeField] private GameObject keyboardControllerUI;
     [SerializeField] private GameObject gamepadControllerUI;
@@ -17,13 +21,50 @@ public class MainMenuManager : MonoBehaviour
         switchInputButton.onClick.AddListener(SwitchInputMethod);
         startButton.onClick.AddListener(StartGame);
 
-        
+        restartButton.onClick.AddListener(StartGame);
+
+        changelvlButton.onClick.AddListener(DesactivateModale);
+
+        ShowModale();
+
         if (!PlayerPrefs.HasKey("InputMethod"))
         {
             PlayerPrefs.SetString("InputMethod", "Keyboard");
         }
 
         ApplyGoodObject();
+    }
+
+
+    private void DesactivateModale()
+    {
+        changelvlButton.transform.parent.gameObject.SetActive(false);
+    }
+
+    private void ShowModale()
+    {
+        if (PlayerPrefs.HasKey("gamestate"))
+        {
+            string gameState = PlayerPrefs.GetString("gamestate");
+
+            if (gameState == "win")
+            {
+                modalMessage.text = "Gagné !";
+                changelvlButton.transform.parent.gameObject.SetActive(true);
+            }
+            else if (gameState == "lose")
+            {
+                modalMessage.text = "Perdu !";
+                changelvlButton.transform.parent.gameObject.SetActive(true);
+            }
+
+            PlayerPrefs.DeleteKey("gamestate");
+            PlayerPrefs.Save();
+        }
+        else
+        {
+            DesactivateModale();
+        }
     }
 
     private void SwitchInputMethod()
@@ -42,7 +83,7 @@ public class MainMenuManager : MonoBehaviour
         PlayerPrefs.Save();
 
         ApplyGoodObject();
-        
+
     }
 
 
