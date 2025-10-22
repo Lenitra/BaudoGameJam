@@ -90,8 +90,8 @@ public abstract class PlaneBase : MonoBehaviour
         GameObject[] checkpointsArray = GameObject.FindGameObjectsWithTag("Checkpoint");
         checkpoints = new List<GameObject>(checkpointsArray);
 
-        // Inverser l'ordre de la liste
-        checkpoints.Reverse();
+        // Trier la liste par ordre alphabétique des noms d'objets
+        checkpoints.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.Ordinal));
 
         // Trouver le premier objet avec le tag "Finish"
         finishLine = GameObject.FindGameObjectWithTag("Finish");
