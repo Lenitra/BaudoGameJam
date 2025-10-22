@@ -25,7 +25,7 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _A_SHORT_HIKE_MODE
+  - _PERSPECTIVE
   - _WORLD_SPACE_UV
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -93,7 +93,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _A_SHORT_HIKE_MODE: 1
+    - _A_SHORT_HIKE_MODE: 0
     - _BOILING: 0
     - _BoilingSpeed: 0
     - _BoilingStrength: 1
@@ -119,7 +119,7 @@ Material:
     - _NormalSpeed: 0.16
     - _NormalStrength: 1.71
     - _OrthographicCamSize: 0
-    - _PERSPECTIVE: 0
+    - _PERSPECTIVE: 1
     - _PosterizeSteps: 0
     - _QueueControl: 1
     - _QueueOffset: -49
@@ -136,7 +136,7 @@ Material:
     - _SurfaceFoamDirection: 3.07
     - _SurfaceFoamDistorsion: 0.5
     - _SurfaceFoamSpeed: 0.05
-    - _SurfaceFoamTiling: 0.28
+    - _SurfaceFoamTiling: 1
     - _TileSize: 200
     - _WORLD_SPACE_UV: 1
     - _WaterAlpha: 1

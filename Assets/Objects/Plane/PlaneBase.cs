@@ -88,10 +88,19 @@ public abstract class PlaneBase : MonoBehaviour
 
         // Trouver tous les objets avec le tag "Checkpoint"
         GameObject[] checkpointsArray = GameObject.FindGameObjectsWithTag("Checkpoint");
-        checkpoints = new List<GameObject>(checkpointsArray);
+        checkpoints = new List<GameObject>();
 
-        // Trier la liste par ordre alphabétique des noms d'objets
-        checkpoints.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.Ordinal));
+        // Filtrer uniquement les checkpoints dont le nom est un nombre
+        foreach (GameObject checkpoint in checkpointsArray)
+        {
+            if (int.TryParse(checkpoint.name, out _))
+            {
+                checkpoints.Add(checkpoint);
+            }
+        }
+
+        // Trier la liste par ordre numérique croissant des noms
+        checkpoints.Sort((a, b) => int.Parse(a.name).CompareTo(int.Parse(b.name)));
 
         // Trouver le premier objet avec le tag "Finish"
         finishLine = GameObject.FindGameObjectWithTag("Finish");
