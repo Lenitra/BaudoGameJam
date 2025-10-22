@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using static Unity.Mathematics.math;
 using GapperGames;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine.UIElements;
 
 namespace GapperGames
@@ -219,8 +221,10 @@ namespace GapperGames
 
         void SetUndo(Terrain terrain, string title)
         {
+#if UNITY_EDITOR
             Undo.RegisterFullObjectHierarchyUndo(terrain.terrainData, title + ": " + terrain.name);
             EditorUtility.SetDirty(terrain);
+#endif
         }
     }
 }
