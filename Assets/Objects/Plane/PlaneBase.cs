@@ -4,357 +4,402 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// <summary>
+/// Contrôleur d'avion arcade - Optimisé pour le game feel et la jouabilité
+/// Architecture simplifiée avec séparation claire des responsabilités
+/// </summary>
 [RequireComponent(typeof(Rigidbody))]
 public abstract class PlaneBase : MonoBehaviour
 {
-    [Header("Vitesse")]
-    private readonly float acceleration = 2.5f;       // puissance moteur
-    private readonly float maxSpeed = 25f;             // vitesse max
-    private readonly float spawnSpeed = 15f;                // vitesse min
-    private readonly float gravityInfluence = 5f;     // effet de la gravité sur la vitesse (selon l'inclinaison haut/bas de l'avion)
+    // ════════════════════════════════════════════════════════════════════════
+    // PARAMÈTRES DE VOL - Ajustez ces valeurs pour modifier le game feel
+    // ════════════════════════════════════════════════════════════════════════
 
-    [Header("Contrôles")]
-    private readonly float pitchSpeed = 60f;           // tangage, haut/bas
-    private readonly float rollSpeed = 100f;           // roulis, gauche/droite
-    private readonly float controlInertia = 10f;        // inertie des contrôles (plus élevé = plus réactif)
-    private readonly float rollStabilizationForce = 0.7f; // force d'auto-nivelage du roll, remise à plat (plus élevé = plus rapide)
-    private readonly float rollToYawInfluence = 15f; // influence du roll sur le yaw (virage lors d'une inclinaison, plus élevé = virages plus serrés)
-    private readonly float stallSpeed = 10f;            // vitesse en dessous de laquelle l'avion pique naturellement
-    private readonly float stallPitchFactor = 50f;    // facteur d'inclinaison en piqué lors du décrochage (plus élevé = pique plus fort)
- 
-    [Header("Altitude")]
-    private readonly float altitudeSoftLimit = 175f;    // altitude à partir de laquelle la résistance commence
-    private readonly float altitudeEffectScale = 0.05f; // échelle d'augmentation des effets par mètre au-dessus de la limite
-    private readonly float altitudeSlowdownBase = 2f;   // ralentissement de base au-dessus de la limite
-    private readonly float altitudePitchForceBase = 30f; // force de piqué de base au-dessus de la limite
-    private readonly float altitudeMinSpeed = 5f;       // vitesse minimale en dessous de laquelle le ralentissement ne s'applique plus
+    [Header("💨 Vitesse")]
+    [SerializeField] private float vitesseDepart = 15f;           // Vitesse au spawn
+    [SerializeField] private float vitesseMax = 25f;              // Vitesse maximale
+    [SerializeField] private float acceleration = 2.5f;           // Puissance du moteur
+    [SerializeField] private float effetGravite = 5f;             // Impact de l'inclinaison sur la vitesse
 
-    [Header("UI (optionnel)")]
-    [SerializeField] private TextMeshProUGUI speedText;
-    [SerializeField] private TextMeshProUGUI altitudeText;
-    [SerializeField] private TextMeshProUGUI checkpointIndication;
+    [Header("🎮 Contrôles")]
+    [SerializeField] private float vitesseTangage = 100f;         // Sensibilité haut/bas (pitch)
+    [SerializeField] private float vitesseRoulis = 120f;          // Sensibilité gauche/droite (roll)
+    [SerializeField] private float roulisMax = -1f;               // Angle max du roll (-1 = illimité)
+    [SerializeField] private float reactivite = 5f;               // Rapidité de réaction aux inputs (plus élevé = plus nerveux)
+    [SerializeField] private float autoStabilisation = 1f;        // Force de remise à plat automatique
+    [SerializeField] private float influenceVirage = 20f;         // Influence du roll sur le virage horizontal
 
+    [Header("⚠️ Limites & Décrochage")]
+    [SerializeField] private float vitesseDecrochage = 10f;       // Vitesse minimum avant perte de contrôle
+    [SerializeField] private float forceDecrochage = 80f;         // Force du piqué en décrochage
+    [SerializeField] private float altitudeMax = 175f;            // Altitude limite avant effets
+    [SerializeField] private float forceAltitude = 80f;           // Force de piqué à haute altitude
 
-    [Header("Visuals effects")]
-    [SerializeField] private GameObject crashEffectPrefab;
-    [SerializeField] private GameObject validateCheckpointEffectPrefab;
+    [Header("🎨 Interface")]
+    [SerializeField] private TextMeshProUGUI texteVitesse;
+    [SerializeField] private TextMeshProUGUI texteAltitude;
 
-    [Header("Elements du jeu")]
-    private List<GameObject> checkpoints; // Liste pour manipulation
-    private GameObject finishLine;
-    [SerializeField] private Compass compass;
+    [Header("✨ Effets Visuels")]
+    [SerializeField] private GameObject effetCrash;
+    [SerializeField] private GameObject effetCheckpoint;
 
+    [Header("🎯 Éléments de Jeu")]
+    [SerializeField] private Compass boussole;
 
-    private float crashVibrationIntensity = 1f; // Intensité de la vibration au crash
-    private float crashVibrationDuration = 2f; // Durée de la vibration en secondes
+    // ════════════════════════════════════════════════════════════════════════
+    // VARIABLES INTERNES - Ne pas modifier directement
+    // ════════════════════════════════════════════════════════════════════════
 
+    // Composants
     protected Rigidbody rb;
-    protected float currentSpeed;
-    protected Gamepad gamepad;
+    protected Gamepad manette;
     protected GameManager gameManager;
-    protected bool isCrashed = false;
 
-    // Variables pour les inputs
-    protected float throttleInput;
-    protected float pitchInput;
-    protected float rollInput;
-    protected float smoothPitch; // Inertie pour le pitch
-    protected float smoothRoll;  // Inertie pour le roll
-    protected float smoothStallPitch; // Inertie pour le pitch de décrochage
-    protected float smoothAltitudePitch; // Inertie pour le pitch dû à l'altitude
-    protected bool isAboveAltitudeLimit; // Indique si l'avion est au-dessus de la limite d'altitude
-    protected float altitudeRatio; // Ratio de dépassement d'altitude (0 = soft limit, 1 = hard limit)
+    // État du vol
+    protected float vitesseActuelle;
+    protected bool estCrash = false;
 
-    // Propriétés pour accéder aux constantes depuis les classes dérivées
-    protected float Acceleration => acceleration;
-    protected float MaxSpeed => maxSpeed;
-    protected float SpawnSpeed => spawnSpeed;
-    protected float GravityInfluence => gravityInfluence;
-    protected float PitchSpeed => pitchSpeed;
-    protected float RollSpeed => rollSpeed;
-    protected float ControlInertia => controlInertia;
-    protected float RollStabilizationForce => rollStabilizationForce;
-    protected float RollToYawInfluence => rollToYawInfluence;
-    protected float StallSpeed => stallSpeed;
+    // Inputs lissés (pour des mouvements fluides)
+    protected float inputAcceleration;
+    protected float inputTangage;
+    protected float inputRoulis;
+    protected float tangageLisse;
+    protected float roulisLisse;
+
+    // Système de checkpoints
+    private List<GameObject> checkpoints;
+    private GameObject ligneArrivee;
+
+    // ════════════════════════════════════════════════════════════════════════
+    // INITIALISATION
+    // ════════════════════════════════════════════════════════════════════════
 
     protected virtual void Awake()
     {
+        // Récupération des composants
         gameManager = FindFirstObjectByType<GameManager>();
         rb = GetComponent<Rigidbody>();
-        rb.useGravity = false;       // On gère la gravité manuellement
-        rb.linearDamping = 0.5f;
-        rb.angularDamping = 2f;
-        currentSpeed = spawnSpeed;     // L'avion démarre à la vitesse minimale
 
-        // Trouver tous les objets avec le tag "Checkpoint"
-        GameObject[] checkpointsArray = GameObject.FindGameObjectsWithTag("Checkpoint");
+        // Configuration du Rigidbody pour un contrôle physique arcade
+        rb.useGravity = false;        // On gère la gravité manuellement pour plus de contrôle
+        rb.linearDamping = 0.5f;      // Légère résistance pour un mouvement plus naturel
+        rb.angularDamping = 2f;       // Frein de rotation pour éviter les tonneaux infinis
+
+        // Initialisation de la vitesse
+        vitesseActuelle = vitesseDepart;
+
+        // Configuration du système de checkpoints
+        InitialiserCheckpoints();
+    }
+
+    /// <summary>
+    /// Récupère et trie tous les checkpoints de la scène
+    /// </summary>
+    private void InitialiserCheckpoints()
+    {
+        // Récupérer tous les objets tagués "Checkpoint"
+        GameObject[] tousLesCheckpoints = GameObject.FindGameObjectsWithTag("Checkpoint");
         checkpoints = new List<GameObject>();
 
-        // Filtrer uniquement les checkpoints dont le nom est un nombre
-        foreach (GameObject checkpoint in checkpointsArray)
+        // Ne garder que ceux avec un nom numérique (pour le tri)
+        foreach (GameObject cp in tousLesCheckpoints)
         {
-            if (int.TryParse(checkpoint.name, out _))
+            if (int.TryParse(cp.name, out _))
             {
-                checkpoints.Add(checkpoint);
+                checkpoints.Add(cp);
             }
         }
 
-        // Trier la liste par ordre numérique croissant des noms
+        // Trier par ordre numérique
         checkpoints.Sort((a, b) => int.Parse(a.name).CompareTo(int.Parse(b.name)));
 
-        // Trouver le premier objet avec le tag "Finish"
-        finishLine = GameObject.FindGameObjectWithTag("Finish");
+        // Trouver la ligne d'arrivée
+        ligneArrivee = GameObject.FindGameObjectWithTag("Finish");
 
-        // Configurer le compass au démarrage
-        SetUpCompassTarget();
+        // Configurer la boussole pour pointer vers le premier objectif
+        MettreAJourBoussole();
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // BOUCLE PRINCIPALE
+    // ════════════════════════════════════════════════════════════════════════
 
     protected virtual void FixedUpdate()
     {
-        gamepad = Gamepad.current;
-        HandleInput();
-        HandleGravityByIncline();
-        ApplyMovement();
-        UpdateUI();
+        if (estCrash) return; // Ne rien faire si l'avion est crashé
+
+        manette = Gamepad.current;
+
+        GererInputs();           // Récupérer les inputs du joueur
+        AppliquerPhysique();     // Calculer et appliquer les forces/rotations
+        MettreAJourInterface();  // Mettre à jour l'UI
     }
 
-    // Méthode abstraite à implémenter dans les classes dérivées
-    protected abstract void HandleInput();
+    /// <summary>
+    /// Méthode abstraite - Chaque type d'avion gère ses inputs différemment
+    /// (Clavier, manette, IA, etc.)
+    /// </summary>
+    protected abstract void GererInputs();
 
-    // ------------------------------------------------------------
-    // Gravité dynamique : modifie la vitesse selon l'inclinaison
-    // ------------------------------------------------------------
-    protected void HandleGravityByIncline()
+    // ════════════════════════════════════════════════════════════════════════
+    // PHYSIQUE DU VOL
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Applique toute la physique du vol : gravité, rotation, mouvement
+    /// C'est ici que le game feel se joue !
+    /// </summary>
+    protected void AppliquerPhysique()
     {
-        // Calcul de l'angle de montée / descente
-        // Dot produit entre le vecteur avant de l'avion et le vecteur vers le haut du monde
-        float incline = Vector3.Dot(transform.forward, Vector3.up);
-        // incline > 0 = monte, incline < 0 = pique
+        // ──────────────────────────────────────────────────────────────────
+        // 1. GRAVITÉ DYNAMIQUE - La vitesse change selon l'inclinaison
+        // ──────────────────────────────────────────────────────────────────
 
-        // On applique un effet de gravité sur la vitesse (TOUJOURS, même au-dessus de l'altitude max)
-        // Plus l'avion monte, plus il perd de vitesse (peut devenir négatif = marche arrière).
-        // Plus il pique, plus il en gagne.
-        float gravityEffect = -incline * gravityInfluence * Time.fixedDeltaTime;
-        currentSpeed += gravityEffect;
+        // Calculer l'angle de montée/descente (-1 = piqué, +1 = montée)
+        float inclinaison = Vector3.Dot(transform.forward, Vector3.up);
 
-        // Limiter l'altitude : ralentir progressivement l'avion
-        float currentAltitude = transform.position.y;
-        isAboveAltitudeLimit = currentAltitude > altitudeSoftLimit;
+        // Plus on monte, plus on perd de vitesse (et vice-versa)
+        vitesseActuelle -= inclinaison * effetGravite * Time.fixedDeltaTime;
 
-        if (isAboveAltitudeLimit)
+        // ──────────────────────────────────────────────────────────────────
+        // 2. LIMITATION D'ALTITUDE - Effets progressifs en haute altitude
+        // ──────────────────────────────────────────────────────────────────
+
+        float altitudeActuelle = transform.position.y;
+        float depassementAltitude = Mathf.Max(0, altitudeActuelle - altitudeMax);
+        bool tropHaut = depassementAltitude > 0;
+
+        if (tropHaut)
         {
-            // Calculer l'excès d'altitude (en mètres au-dessus de la limite)
-            float altitudeExcess = currentAltitude - altitudeSoftLimit;
-
-            // Le ratio augmente indéfiniment avec l'altitude (pas de limite dure)
-            // altitudeRatio = distance × échelle (ex: 50m × 0.02 = 1.0)
-            altitudeRatio = Mathf.Min(altitudeExcess * altitudeEffectScale, 3f); // Plafonné à 3 pour éviter des valeurs extrêmes
-
-            // Ralentissement progressif : plus on monte, plus on ralentit
-            // Ne s'applique que si l'avion n'est PAS incliné vers le bas (incline >= 0)
-            // et si la vitesse est supérieure à la vitesse minimale
-            if (currentSpeed > altitudeMinSpeed && incline >= 0)
+            // Ralentir progressivement si on monte trop haut
+            if (vitesseActuelle > 10f && inclinaison >= 0)
             {
-                float slowdownForce = altitudeSlowdownBase * (1f + altitudeRatio * 2f);
-                currentSpeed -= slowdownForce * Time.fixedDeltaTime;
-                // S'assurer de ne pas descendre en dessous de la vitesse minimale
-                currentSpeed = Mathf.Max(currentSpeed, altitudeMinSpeed);
+                float ralentissement = 2f * (1f + depassementAltitude * 0.1f);
+                vitesseActuelle -= ralentissement * Time.fixedDeltaTime;
+                vitesseActuelle = Mathf.Max(vitesseActuelle, 10f);
             }
         }
-        else
+
+        // ──────────────────────────────────────────────────────────────────
+        // 3. ROTATION - Tangage (pitch) et Roulis (roll)
+        // ──────────────────────────────────────────────────────────────────
+
+        // Lisser les inputs pour des mouvements fluides
+        tangageLisse = Mathf.Lerp(tangageLisse, inputTangage, Time.fixedDeltaTime * reactivite);
+        roulisLisse = Mathf.Lerp(roulisLisse, inputRoulis, Time.fixedDeltaTime * reactivite);
+
+        // Calculer le roll actuel (converti en range -180° à +180°)
+        float roulisActuel = transform.eulerAngles.z;
+        if (roulisActuel > 180f) roulisActuel -= 360f;
+
+        // TANGAGE (Pitch) : Monter/Descendre
+        // ─────────────────────────────────
+        float rotationTangage = tangageLisse * vitesseTangage * Time.fixedDeltaTime;
+
+        // Réduire l'efficacité du tangage si l'avion est très incliné
+        float ratioRoulis = Mathf.Abs(roulisActuel) / 90f;
+        rotationTangage *= (1f - ratioRoulis * 0.7f);
+
+        // Bloquer la montée si trop haut
+        if (tropHaut && tangageLisse > 0)
         {
-            altitudeRatio = 0f;
+            rotationTangage *= Mathf.Max(0, 1f - depassementAltitude * 0.05f);
         }
+
+        // DÉCROCHAGE : Forcer le nez vers le bas si trop lent
+        if (vitesseActuelle < vitesseDecrochage)
+        {
+            float intensiteDecrochage = 1f - (vitesseActuelle / vitesseDecrochage);
+            rotationTangage += intensiteDecrochage * forceDecrochage * Time.fixedDeltaTime;
+        }
+
+        // HAUTE ALTITUDE : Forcer le nez vers le bas si trop haut
+        if (tropHaut)
+        {
+            float intensiteAltitude = Mathf.Min(depassementAltitude * 0.05f, 3f);
+            rotationTangage += intensiteAltitude * forceAltitude * Time.fixedDeltaTime;
+        }
+
+        // ROULIS (Roll) : Incliner gauche/droite
+        // ───────────────────────────────────────
+        float rotationRoulis = roulisLisse * vitesseRoulis * Time.fixedDeltaTime;
+
+        // Auto-stabilisation : Retour automatique à plat quand pas d'input
+        if (Mathf.Abs(inputRoulis) <= 0.2f)
+        {
+            float forceStabilisation = autoStabilisation;
+
+            // Augmenter la stabilisation en altitude pour rendre le vol plus difficile
+            if (tropHaut)
+            {
+                forceStabilisation *= (1f + depassementAltitude * 0.1f);
+            }
+
+            rotationRoulis -= roulisActuel * forceStabilisation * Time.fixedDeltaTime;
+        }
+
+        // Limiter le roulis maximum si activé (roulisMax >= 0)
+        if (roulisMax >= 0f)
+        {
+            // Calculer le roulis potentiel après rotation
+            Quaternion rotationPotentielle = rb.rotation * Quaternion.Euler(0f, 0f, rotationRoulis);
+            float roulisPotentiel = rotationPotentielle.eulerAngles.z;
+            if (roulisPotentiel > 180f) roulisPotentiel -= 360f;
+
+            // Bloquer si on dépasse la limite
+            if (Mathf.Abs(roulisPotentiel) > roulisMax)
+            {
+                float roulisCible = Mathf.Sign(roulisPotentiel) * roulisMax;
+                rotationRoulis = roulisCible - roulisActuel;
+            }
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // 4. VIRAGE HORIZONTAL - Le roll influence le yaw (réalisme arcade)
+        // ──────────────────────────────────────────────────────────────────
+
+        // Plus l'avion est incliné, plus il tourne
+        float facteurVirage = (ratioRoulis * ratioRoulis); // Courbe exponentielle pour plus de contrôle
+
+        // Plus l'avion va vite, plus il tourne facilement
+        float facteurVitesse = 1f + (vitesseActuelle / vitesseMax) * 2f;
+
+        // Calculer le virage horizontal (yaw global)
+        float virageHorizontal = -Mathf.Sign(roulisActuel) * facteurVirage * influenceVirage * facteurVitesse * Time.fixedDeltaTime;
+
+        // ──────────────────────────────────────────────────────────────────
+        // 5. APPLIQUER LES ROTATIONS
+        // ──────────────────────────────────────────────────────────────────
+
+        // D'abord : Rotations locales (pitch et roll)
+        Quaternion rotationLocale = Quaternion.Euler(rotationTangage, 0f, rotationRoulis);
+        rb.MoveRotation(rb.rotation * rotationLocale);
+
+        // Ensuite : Rotation globale (yaw autour de l'axe Y du monde)
+        Quaternion rotationGlobale = Quaternion.Euler(0f, virageHorizontal, 0f);
+        rb.MoveRotation(rotationGlobale * rb.rotation);
+
+        // ──────────────────────────────────────────────────────────────────
+        // 6. APPLIQUER LE MOUVEMENT
+        // ──────────────────────────────────────────────────────────────────
+
+        // Limiter la vitesse
+        float vitesseMin = tropHaut ? 0f : -vitesseMax; // Pas de marche arrière en altitude
+        vitesseActuelle = Mathf.Clamp(vitesseActuelle, vitesseMin, vitesseMax * 1.5f);
+
+        // Déplacer l'avion dans la direction où il pointe
+        rb.linearVelocity = transform.forward * vitesseActuelle;
     }
 
-    // ------------------------------------------------------------
-    // Applique le mouvement (déplacement et rotation)
-    // ------------------------------------------------------------
-    protected void ApplyMovement()
+    // ════════════════════════════════════════════════════════════════════════
+    // INTERFACE UTILISATEUR
+    // ════════════════════════════════════════════════════════════════════════
+
+    protected void MettreAJourInterface()
     {
-        // Auto-nivelage du roll : calculer l'angle de roll actuel
-        float currentRoll = transform.eulerAngles.z;
-        // Convertir l'angle en range [-180, 180] pour avoir la direction correcte
-        if (currentRoll > 180f) currentRoll -= 360f;
-
-        // Réduire la force de pitch en fonction du roll
-        // Plus l'avion est incliné, moins le pitch est efficace
-        float rollRatio = Mathf.Abs(currentRoll) / 90f; // Ratio de 0 (à plat) à 1 (90° de roll)
-        rollRatio = Mathf.Clamp01(rollRatio);
-        float pitchReduction = 1f - (rollRatio * 0.7f); // Réduction jusqu'à 70% quand complètement incliné
-
-        // Bloquer le pitch vers le haut si au-dessus de la limite d'altitude
-        float adjustedPitchInput = pitchInput;
-        if (isAboveAltitudeLimit && pitchInput > 0)
+        if (texteVitesse != null)
         {
-            // Réduire progressivement le pitch vers le haut selon l'altitude
-            adjustedPitchInput *= (1f - altitudeRatio);
+            texteVitesse.text = $"{Mathf.RoundToInt(vitesseActuelle * 10)} km/h";
         }
 
-        float finalPitch = adjustedPitchInput * pitchSpeed * pitchReduction * Time.fixedDeltaTime;
-
-        // Stall : Si vitesse trop faible, forcer le nez vers le bas
-        // Calculer l'intensité du décrochage (plus la vitesse est faible, plus le piqué est fort)
-        float targetStallRatio = 0f;
-        if (currentSpeed < stallSpeed)
+        if (texteAltitude != null)
         {
-            float stallRatio = 1f - (currentSpeed / stallSpeed);
-            targetStallRatio = Mathf.Clamp01(stallRatio);
+            int altitudeAffichage = (Mathf.RoundToInt(transform.position.y) * 4) - 550;
+            int altitudeMaxAffichage = (Mathf.RoundToInt(altitudeMax) * 4) - 550;
+            texteAltitude.text = $"Altitude: {altitudeAffichage}m\n{altitudeMaxAffichage}m max";
         }
-
-        // Appliquer l'inertie au ratio de décrochage pour une transition douce
-        smoothStallPitch = Mathf.Lerp(smoothStallPitch, targetStallRatio, Time.fixedDeltaTime * controlInertia);
-
-        // Appliquer la force de piqué proportionnelle au ratio lissé
-        finalPitch += smoothStallPitch * stallPitchFactor * Time.fixedDeltaTime;
-
-        // Altitude : calculer la force de piqué cible (progressive selon l'altitude)
-        float targetAltitudeRatio = isAboveAltitudeLimit ? altitudeRatio : 0f;
-
-        // Appliquer l'inertie au ratio d'altitude pour une transition douce
-        smoothAltitudePitch = Mathf.Lerp(smoothAltitudePitch, targetAltitudeRatio, Time.fixedDeltaTime * controlInertia);
-
-        // Force de piqué progressive : augmente avec l'altitude
-        float altitudePitchForce = altitudePitchForceBase * (1f + smoothAltitudePitch * 2f);
-        finalPitch += smoothAltitudePitch * altitudePitchForce * Time.fixedDeltaTime;
-
-        // Appliquer une force de redressement proportionnelle à l'angle
-        // Plus l'avion est incliné, plus la force de redressement est forte
-        // Au-dessus de l'altitude max, augmenter la force de stabilisation pour rendre l'avion plus difficile à contrôler
-        float adjustedRollStabilization = rollStabilizationForce;
-        if (isAboveAltitudeLimit)
-        {
-            // Augmenter la stabilisation progressivement avec l'altitude
-            adjustedRollStabilization *= (1f + altitudeRatio * 2f);
-        }
-        float rollCorrection = -currentRoll * adjustedRollStabilization * Time.fixedDeltaTime;
-
-        // Influence du roll sur le yaw GLOBAL : rotation horizontale par rapport au sol
-        // On réutilise rollRatio déjà calculé plus haut pour le pitch
-        float rollInfluenceFactor = rollRatio * rollRatio; // Courbe quadratique
-
-        float speedRatio = Mathf.Clamp01(currentSpeed / maxSpeed);
-        float speedFactor = 1f + (speedRatio * 2f);
-
-        // Calculer le yaw qui sera appliqué autour de l'axe Y GLOBAL (vertical du monde)
-        float rollInfluence = rollInfluenceFactor * rollToYawInfluence * speedFactor * Time.fixedDeltaTime;
-        float globalYaw = -Mathf.Sign(currentRoll) * rollInfluence;
-
-        // Rotation basée sur les entrées + correction d'auto-nivelage
-        float finalRoll = (rollInput * rollSpeed * Time.fixedDeltaTime) + rollCorrection;
-
-        // Appliquer d'abord la rotation locale (pitch et roll)
-        Quaternion localRotation = Quaternion.Euler(finalPitch, 0f, finalRoll);
-        rb.MoveRotation(rb.rotation * localRotation);
-
-        // Puis appliquer la rotation globale autour de l'axe Y du monde (virage horizontal)
-        Quaternion globalRotation = Quaternion.Euler(0f, globalYaw, 0f);
-        rb.MoveRotation(globalRotation * rb.rotation);
-
-        // Clamp final de vitesse
-        // Si au-dessus de l'altitude limite, vitesse minimum = 0 (pas de marche arrière)
-        // Sinon, vitesse négative autorisée pour gamepad
-        float minSpeed = isAboveAltitudeLimit ? 0f : -maxSpeed;
-        currentSpeed = Mathf.Clamp(currentSpeed, minSpeed, maxSpeed * 1.5f);
-
-        // Déplacement selon la vitesse actuelle
-        rb.linearVelocity = transform.forward * currentSpeed;
     }
 
-    // ------------------------------------------------------------
-    // Mise à jour de l'UI
-    // ------------------------------------------------------------
-    protected void UpdateUI()
-    {
-        if (speedText != null)
-            speedText.text = $"{Mathf.RoundToInt(currentSpeed*10)} km/h";
-        if (altitudeText != null)
-            altitudeText.text = $"Altitude: {(Mathf.RoundToInt(transform.position.y)*4)-550}m\n{(altitudeSoftLimit*4)-550}m max";
-    }
+    // ════════════════════════════════════════════════════════════════════════
+    // GESTION DES COLLISIONS & TRIGGERS
+    // ════════════════════════════════════════════════════════════════════════
 
-    // ------------------------------------------------------------
-    // Gestion des collisions
-    // ------------------------------------------------------------
+    /// <summary>
+    /// Collision = CRASH !
+    /// </summary>
     protected virtual void OnCollisionEnter(Collision collision)
     {
-        isCrashed = true;
+        if (estCrash) return;
+        estCrash = true;
 
-        // Sauvegarder l'état de défaite
+        // Sauvegarder la défaite
         PlayerPrefs.SetString("gamestate", "lose");
         PlayerPrefs.Save();
 
-        // Ajouter des effets de crash ici (ex: son, particules, etc.)
-        if (crashEffectPrefab != null)
-            Instantiate(crashEffectPrefab, transform.position, Quaternion.identity);
-
-        // MEGA VIBRATION au crash !
-        if (gamepad != null)
+        // Effet visuel de crash
+        if (effetCrash != null)
         {
-            StartCoroutine(CrashVibration());
+            Instantiate(effetCrash, transform.position, Quaternion.identity);
         }
 
-        // Sequence de crash qui notifie le GameManager
-        if (gameManager != null)
-            StartCoroutine(gameManager.CrashSequence());
+        // Vibration de la manette
+        if (manette != null)
+        {
+            StartCoroutine(VibrationCrash());
+        }
 
-        // Désactiver tout les meshes de l'avion pour simuler la destruction
+        // Notifier le GameManager
+        if (gameManager != null)
+        {
+            StartCoroutine(gameManager.CrashSequence());
+        }
+
+        // Désactiver visuellement l'avion
         foreach (MeshRenderer mr in GetComponentsInChildren<MeshRenderer>())
         {
             mr.enabled = false;
         }
 
-        // Désactiver les rigidbodies pour arrêter tout mouvement
+        // Stopper toute physique
         foreach (Rigidbody r in GetComponentsInChildren<Rigidbody>())
         {
             r.isKinematic = true;
         }
 
-        // Désactiver les colliders pour éviter d'autres collisions
+        // Désactiver les collisions
         foreach (Collider c in GetComponentsInChildren<Collider>())
         {
             c.enabled = false;
         }
     }
 
-    // ------------------------------------------------------------
-    // Coroutine pour la vibration de crash
-    // ------------------------------------------------------------
-    protected IEnumerator CrashVibration()
+    /// <summary>
+    /// Vibration intense lors du crash
+    /// </summary>
+    protected IEnumerator VibrationCrash()
     {
-        // Démarrer la vibration à intensité maximale
-        gamepad.SetMotorSpeeds(crashVibrationIntensity, crashVibrationIntensity);
-
-        // Attendre la durée définie
-        yield return new WaitForSeconds(crashVibrationDuration);
-
-        // Arrêter la vibration
-        gamepad.SetMotorSpeeds(0f, 0f);
+        manette.SetMotorSpeeds(1f, 1f);
+        yield return new WaitForSeconds(2f);
+        manette.SetMotorSpeeds(0f, 0f);
     }
 
-    // ------------------------------------------------------------
-    // Gestion des triggers
-    // ------------------------------------------------------------
+    /// <summary>
+    /// Passage dans un checkpoint ou la ligne d'arrivée
+    /// </summary>
     protected virtual void OnTriggerEnter(Collider other)
     {
+        // ──────────────────────────────────────────────────────────────────
+        // CHECKPOINT VALIDÉ
+        // ──────────────────────────────────────────────────────────────────
         if (other.gameObject.CompareTag("Checkpoint"))
         {
-            // Effet visuel de validation
-            if (validateCheckpointEffectPrefab != null)
+            // Effet visuel
+            if (effetCheckpoint != null)
             {
-                Instantiate(validateCheckpointEffectPrefab, transform);
+                Instantiate(effetCheckpoint, transform);
             }
 
-            // Trouver et supprimer le checkpoint de la liste
-            GameObject checkpointObject = other.gameObject;
-            if (checkpoints.Contains(checkpointObject))
+            // Retirer le checkpoint de la liste
+            GameObject checkpointValide = other.gameObject;
+            if (checkpoints.Contains(checkpointValide))
             {
-                checkpoints.Remove(checkpointObject);
+                checkpoints.Remove(checkpointValide);
             }
 
-            // Détruire le GameObject du checkpoint
-            Destroy(checkpointObject);
+            // Détruire le checkpoint
+            Destroy(checkpointValide);
 
-            // Si c'était le dernier checkpoint, victoire !
+            // Si c'était le dernier, victoire !
             if (checkpoints.Count == 0)
             {
                 PlayerPrefs.SetString("gamestate", "win");
@@ -366,14 +411,15 @@ public abstract class PlaneBase : MonoBehaviour
                 }
             }
 
-            // Mettre à jour le compass pour pointer vers le prochain checkpoint
-            SetUpCompassTarget();
+            // Mettre à jour la boussole
+            MettreAJourBoussole();
         }
 
-        // On vérifie le tag de l'objet avec lequel on entre en collision
+        // ──────────────────────────────────────────────────────────────────
+        // LIGNE D'ARRIVÉE (seulement si tous les checkpoints sont validés)
+        // ──────────────────────────────────────────────────────────────────
         if (other.gameObject.CompareTag("Finish") && checkpoints.Count == 0)
         {
-            // Sauvegarder l'état de victoire
             PlayerPrefs.SetString("gamestate", "win");
             PlayerPrefs.Save();
 
@@ -383,20 +429,25 @@ public abstract class PlaneBase : MonoBehaviour
             }
         }
     }
-    
-    void SetUpCompassTarget()
-    {
-        // Si pas de compass, ne rien faire
-        if (compass == null)
-            return;
 
-        // Priorité 1 : Premier checkpoint de la liste
+    // ════════════════════════════════════════════════════════════════════════
+    // SYSTÈME DE BOUSSOLE
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Met à jour la cible de la boussole (prochain checkpoint ou arrivée)
+    /// </summary>
+    private void MettreAJourBoussole()
+    {
+        if (boussole == null) return;
+
+        // Priorité 1 : Premier checkpoint
         if (checkpoints != null && checkpoints.Count > 0)
         {
-            compass.SetTarget(checkpoints[0]);
-            compass.gameObject.SetActive(true);
+            boussole.SetTarget(checkpoints[0]);
+            boussole.gameObject.SetActive(true);
 
-            // Activer seulement le premier checkpoint, désactiver les autres
+            // Activer uniquement le premier checkpoint, désactiver les autres
             for (int i = 0; i < checkpoints.Count; i++)
             {
                 if (checkpoints[i] != null)
@@ -405,18 +456,31 @@ public abstract class PlaneBase : MonoBehaviour
                 }
             }
         }
-        // Priorité 2 : Finish line si plus de checkpoints
-        else if (finishLine != null)
+        // Priorité 2 : Ligne d'arrivée
+        else if (ligneArrivee != null)
         {
-            compass.SetTarget(finishLine);
-            compass.gameObject.SetActive(true);
+            boussole.SetTarget(ligneArrivee);
+            boussole.gameObject.SetActive(true);
         }
-        // Priorité 3 : Désactiver le compass si rien à viser
+        // Pas d'objectif : désactiver la boussole
         else
         {
-            compass.gameObject.SetActive(false);
+            boussole.gameObject.SetActive(false);
         }
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // PROPRIÉTÉS ACCESSIBLES (pour les classes dérivées)
+    // ════════════════════════════════════════════════════════════════════════
 
+    protected float Acceleration => acceleration;
+    protected float VitesseMax => vitesseMax;
+    protected float VitesseDepart => vitesseDepart;
+    protected float EffetGravite => effetGravite;
+    protected float VitesseTangage => vitesseTangage;
+    protected float VitesseRoulis => vitesseRoulis;
+    protected float Reactivite => reactivite;
+    protected float AutoStabilisation => autoStabilisation;
+    protected float InfluenceVirage => influenceVirage;
+    protected float VitesseDecrochage => vitesseDecrochage;
 }

@@ -1,11 +1,19 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+/// <summary>
+/// Contrôle de l'avion au CLAVIER
+/// Utilise WASD/ZQSD pour le vol et Espace pour accélérer
+/// </summary>
 public class PlaneControlerClavier : PlaneBase
 {
+    // ════════════════════════════════════════════════════════════════════════
+    // INITIALISATION
+    // ════════════════════════════════════════════════════════════════════════
+
     protected override void Awake()
     {
-        // get the playerprefs to know which controller to use
+        // Vérifier que le joueur a choisi le clavier
         if (PlayerPrefs.GetString("InputMethod") != "Keyboard")
         {
             this.enabled = false;
@@ -15,48 +23,87 @@ public class PlaneControlerClavier : PlaneBase
         base.Awake();
     }
 
-    // ------------------------------------------------------------
-    // Lecture des entrees clavier
-    // ------------------------------------------------------------
-    protected override void HandleInput()
+    // ════════════════════════════════════════════════════════════════════════
+    // GESTION DES INPUTS CLAVIER
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Lit les entrées du clavier et les assigne aux variables de PlaneBase
+    ///
+    /// CONTRÔLES:
+    /// - W/Z : Tangage vers le haut (monter)
+    /// - S   : Tangage vers le bas (descendre)
+    /// - A/Q : Roulis vers la gauche
+    /// - D   : Roulis vers la droite
+    /// - Espace : Accélérer
+    /// </summary>
+    protected override void GererInputs()
     {
-        float targetPitch = 0f;
-        float targetRoll = 0f;
-        float accelInput = 0f;
+        var clavier = Keyboard.current;
 
-        // === INPUT CLAVIER (nouveau Input System) ===
-        var keyboard = Keyboard.current;
-        if (keyboard != null)
+        // Si pas de clavier détecté, ne rien faire
+        if (clavier == null) return;
+
+        // ──────────────────────────────────────────────────────────────────
+        // 1. TANGAGE (Monter/Descendre)
+        // ──────────────────────────────────────────────────────────────────
+
+        float tangageCible = 0f;
+
+        // W ou Z = Monter
+        if (clavier.wKey.isPressed || clavier.zKey.isPressed)
         {
-            // Z = pitch vers le haut, S = pitch vers le bas
-            if (keyboard.wKey.isPressed)
-                targetPitch = 1f;
-            if (keyboard.sKey.isPressed)
-                targetPitch = -1f;
-
-            // Q = roll vers la gauche, D = roll vers la droite
-            if (keyboard.qKey.isPressed || keyboard.aKey.isPressed)
-                targetRoll = 1f;
-            if (keyboard.dKey.isPressed)
-                targetRoll = -1f;
-
-            // Espace = accelerer
-            if (keyboard.spaceKey.isPressed)
-                accelInput = 1f;
+            tangageCible = 1f;
         }
 
-        // === TRAITEMENT FINAL ===
-        throttleInput = accelInput;
+        // S = Descendre
+        if (clavier.sKey.isPressed)
+        {
+            tangageCible = -1f;
+        }
 
-        // Appliquer l'inertie aux controles
-        smoothPitch = Mathf.Lerp(smoothPitch, targetPitch, Time.fixedDeltaTime * ControlInertia);
-        smoothRoll = Mathf.Lerp(smoothRoll, targetRoll, Time.fixedDeltaTime * ControlInertia);
+        inputTangage = tangageCible;
 
-        pitchInput = smoothPitch;
-        rollInput = smoothRoll;
+        // ──────────────────────────────────────────────────────────────────
+        // 2. ROULIS (Incliner gauche/droite)
+        // ──────────────────────────────────────────────────────────────────
 
-        // Ajuster la vitesse
-        currentSpeed += throttleInput * Acceleration * Time.fixedDeltaTime;
-        currentSpeed = Mathf.Clamp(currentSpeed, SpawnSpeed, MaxSpeed);
+        float roulisCible = 0f;
+
+        // A ou Q = Incliner à gauche
+        if (clavier.aKey.isPressed || clavier.qKey.isPressed)
+        {
+            roulisCible = 1f;
+        }
+
+        // D = Incliner à droite
+        if (clavier.dKey.isPressed)
+        {
+            roulisCible = -1f;
+        }
+
+        inputRoulis = roulisCible;
+
+        // ──────────────────────────────────────────────────────────────────
+        // 3. ACCÉLÉRATION
+        // ──────────────────────────────────────────────────────────────────
+
+        float accelerationCible = 0f;
+
+        // Espace = Accélérer
+        if (clavier.spaceKey.isPressed)
+        {
+            accelerationCible = 1f;
+        }
+
+        inputAcceleration = accelerationCible;
+
+        // Appliquer l'accélération à la vitesse
+        vitesseActuelle += inputAcceleration * Acceleration * Time.fixedDeltaTime;
+
+        // Limiter la vitesse pour le clavier (pas de marche arrière)
+        vitesseActuelle = Mathf.Clamp(vitesseActuelle, VitesseDepart, VitesseMax);
+
+        // Note: Le lissage des inputs est géré dans ApplyPhysique() de PlaneBase
     }
 }
