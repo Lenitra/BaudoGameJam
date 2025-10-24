@@ -23,7 +23,7 @@ public class Environnement : MonoBehaviour
     private void ChangeLightColorIntensity(Color color)
     {
         globalLight.color = color;
-        float intensity = (color.r + color.g + color.b) / 3.0f;
+        float intensity = (color.r + color.g + color.b) / 10.0f;
         globalLight.intensity = intensity;
     }
 

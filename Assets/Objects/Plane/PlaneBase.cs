@@ -71,7 +71,9 @@ public abstract class PlaneBase : MonoBehaviour
     protected float StallSpeed => stallSpeed;
     [Header("Game Elements")]
     private List<GameObject> checkpoints = new List<GameObject>();
+    private List<GameObject> rollbackElements = new List<GameObject>();
     private int currentCheckpointIndex = 0; // Index du checkpoint actuel
+    private int currentRollbackIndex = 0; // Index du rollback actuel
 
 
 
@@ -88,7 +90,8 @@ public abstract class PlaneBase : MonoBehaviour
         GameObject[] foundCheckpoints = GameObject.FindGameObjectsWithTag("Checkpoint");
 
         // Trier les checkpoints par leur nom (ordre numérique)
-        checkpoints = foundCheckpoints.OrderBy(cp => {
+        checkpoints = foundCheckpoints.OrderBy(cp =>
+        {
             // Extraire le nombre du nom (ex: "1", "2", "10", etc.)
             if (int.TryParse(cp.name, out int number))
                 return number;
@@ -96,6 +99,32 @@ public abstract class PlaneBase : MonoBehaviour
         }).ToList();
 
         Debug.Log($"Found {checkpoints.Count} checkpoints in the scene");
+
+        // Récupérer les rollbacks seulement si le nombre correspond aux checkpoints
+        GameObject[] foundRollbacks = GameObject.FindGameObjectsWithTag("Rollback");
+        if (foundRollbacks.Length == checkpoints.Count)
+        {
+            // Trier les rollback par leur nom (ordre numérique)
+            rollbackElements = foundRollbacks.OrderBy(rb =>
+            {
+                // Extraire le nombre du nom (ex: "1", "2", "10", etc.)
+                if (int.TryParse(rb.name, out int number))
+                    return number;
+                return 0;
+            }).ToList();
+
+            Debug.Log($"Found {rollbackElements.Count} rollback elements in the scene");
+
+            // Désactiver tous les rollbacks
+            foreach (GameObject rollback in rollbackElements)
+            {
+                rollback.SetActive(false);
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"Rollback count ({foundRollbacks.Length}) doesn't match checkpoint count ({checkpoints.Count}). Rollbacks will not be activated.");
+        }
 
         // Désactiver tous les checkpoints
         foreach (GameObject checkpoint in checkpoints)
@@ -108,6 +137,13 @@ public abstract class PlaneBase : MonoBehaviour
         {
             checkpoints[0].SetActive(true);
             Debug.Log($"Activated first checkpoint: {checkpoints[0].name}");
+
+            // Activer le premier rollback s'il existe
+            if (rollbackElements.Count > 0)
+            {
+                rollbackElements[0].SetActive(true);
+                Debug.Log($"Activated first rollback: {rollbackElements[0].name}");
+            }
         }
     }
 
@@ -325,13 +361,6 @@ public abstract class PlaneBase : MonoBehaviour
     protected virtual void OnTriggerEnter(Collider other)
     {
         // On vérifie le tag de l'objet avec lequel on entre en collision
-        if (other.gameObject.CompareTag("Finish"))
-        {
-            if (gameManager != null)
-            {
-                gameManager.WinGame();
-            }
-        }
         if (other.gameObject.CompareTag("Checkpoint"))
         {
             // Vérifier que c'est bien le checkpoint actuel
@@ -348,18 +377,37 @@ public abstract class PlaneBase : MonoBehaviour
                 // Désactiver le checkpoint actuel
                 checkpoints[currentCheckpointIndex].SetActive(false);
 
+                // Désactiver le rollback actuel s'il existe
+                if (rollbackElements.Count > 0 && currentRollbackIndex < rollbackElements.Count)
+                {
+                    rollbackElements[currentRollbackIndex].SetActive(false);
+                    Debug.Log($"Rollback hidden: {rollbackElements[currentRollbackIndex].name}");
+                }
+
                 // Passer au checkpoint suivant
                 currentCheckpointIndex++;
+                currentRollbackIndex++;
 
                 // Activer le prochain checkpoint s'il existe
                 if (currentCheckpointIndex < checkpoints.Count)
                 {
                     checkpoints[currentCheckpointIndex].SetActive(true);
                     Debug.Log($"Activated next checkpoint: {checkpoints[currentCheckpointIndex].name}");
+
+                    // Activer le prochain rollback s'il existe
+                    if (rollbackElements.Count > 0 && currentRollbackIndex < rollbackElements.Count)
+                    {
+                        rollbackElements[currentRollbackIndex].SetActive(true);
+                        Debug.Log($"Activated next rollback: {rollbackElements[currentRollbackIndex].name}");
+                    }
                 }
                 else
                 {
                     Debug.Log("All checkpoints completed!");
+                    if (gameManager != null)
+                    {
+                        gameManager.WinGame();
+                    }
                 }
             }
         }
