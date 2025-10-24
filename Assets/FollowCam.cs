@@ -13,6 +13,9 @@ public class FollowCam : MonoBehaviour
     [Header("Rotation Settings")]
     [SerializeField] private float rotationLerpSpeed = 0.02f;
 
+
+
+
     void FixedUpdate()
     {
         if (target == null) return;

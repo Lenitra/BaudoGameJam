@@ -917,7 +917,7 @@ MonoBehaviour:
   globalLight: {fileID: 1913840909}
   waterParentObject: {fileID: 576475384}
   skyBoxMaterial: {fileID: 2100000, guid: d0523d8917957bb429a32997cb0e52b2, type: 2}
-  DefaultWaterColor: {r: 0.028657887, g: 0.1613903, b: 0.26415092, a: 1}
+  defaultColor: {r: 0, g: 0.5, b: 0.7, a: 1}
 --- !u!114 &417594793
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1323,7 +1323,7 @@ Transform:
   m_GameObject: {fileID: 515526643}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 162, y: -2.09, z: 170}
+  m_LocalPosition: {x: 162, y: -15.56, z: 170}
   m_LocalScale: {x: 0.99999994, y: 0.99999994, z: 0.99999994}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -2357,25 +2357,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b0d9ccbb2f087d2489022bdae24b7527, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlaneControler
-  vitesseDepart: 15
-  vitesseMax: 25
-  acceleration: 2.5
-  effetGravite: 5
-  vitesseTangage: 150
-  vitesseRoulis: 180
-  roulisMax: 112.5
-  reactivite: 2
-  autoStabilisation: 1.5
-  influenceVirage: 15
-  vitesseDecrochage: 10
-  forceDecrochage: 80
-  altitudeMax: 175
-  forceAltitude: 80
-  texteVitesse: {fileID: 404801535}
-  texteAltitude: {fileID: 526277001}
-  effetCrash: {fileID: 1248331578108354, guid: 9d5fa29d0b3721b4fa415bea4e1e469a, type: 3}
-  effetCheckpoint: {fileID: 1850347689673190, guid: 3afd6e3c5bf4dd748a78bfb80c4ab7d8, type: 3}
-  boussole: {fileID: 772255439}
+  speedText: {fileID: 404801535}
+  altitudeText: {fileID: 526277001}
+  crashEffectPrefab: {fileID: 1248331578108354, guid: 9d5fa29d0b3721b4fa415bea4e1e469a, type: 3}
+  checkpointEffectPrefab: {fileID: 1850347689673190, guid: 3afd6e3c5bf4dd748a78bfb80c4ab7d8, type: 3}
 --- !u!4 &1481108930
 Transform:
   m_ObjectHideFlags: 0
@@ -2404,25 +2389,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f628a712047a32849bef52f35c3768c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlaneControlerClavier
-  vitesseDepart: 15
-  vitesseMax: 25
-  acceleration: 2.5
-  effetGravite: 5
-  vitesseTangage: 100
-  vitesseRoulis: 120
-  roulisMax: -1
-  reactivite: 5
-  autoStabilisation: 1
-  influenceVirage: 20
-  vitesseDecrochage: 10
-  forceDecrochage: 80
-  altitudeMax: 175
-  forceAltitude: 80
-  texteVitesse: {fileID: 404801535}
-  texteAltitude: {fileID: 526277001}
-  effetCrash: {fileID: 0}
-  effetCheckpoint: {fileID: 0}
-  boussole: {fileID: 0}
+  speedText: {fileID: 0}
+  altitudeText: {fileID: 0}
+  crashEffectPrefab: {fileID: 0}
+  checkpointEffectPrefab: {fileID: 0}
 --- !u!65 &1481108932
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3489,11 +3459,11 @@ Light:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1913840908}
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 11
   m_Type: 1
   m_Color: {r: 0.52910644, g: 0.6041879, b: 0.78113204, a: 1}
-  m_Intensity: 0.36
+  m_Intensity: 1.08
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208

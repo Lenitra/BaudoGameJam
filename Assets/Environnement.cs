@@ -8,17 +8,16 @@ public class Environnement : MonoBehaviour
     [SerializeField] private GameObject waterParentObject;
     [SerializeField] private Material skyBoxMaterial;
 
-    [SerializeField] private Color DefaultWaterColor = new Color(0.0f, 0.5f, 0.7f);
+    [SerializeField] private Color defaultColor = new Color(0.0f, 0.5f, 0.7f);
 
 
 
     void Awake()
     {
         RenderSettings.skybox = skyBoxMaterial;
-        ChangeWaterColor(DefaultWaterColor);
-        // ChangeSkyBoxColor(DefaultWaterColor);
-        ChangeSkyColor(DefaultWaterColor);
-
+        ChangeWaterColor(defaultColor);
+        ChangeSkyColor(defaultColor);
+        ChangeLightColorIntensity(defaultColor);
     }
 
     private void ChangeLightColorIntensity(Color color)

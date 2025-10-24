@@ -16,6 +16,11 @@ public class MainMenuManager : MonoBehaviour
 
     [SerializeField] private Button switchInputButton;
 
+    [SerializeField] private Button nextLvl;
+    [SerializeField] private GameObject lvlInfosParent;
+
+    private int currentLvlIndex = 0;
+
     void Start()
     {
         switchInputButton.onClick.AddListener(SwitchInputMethod);
@@ -24,6 +29,8 @@ public class MainMenuManager : MonoBehaviour
         restartButton.onClick.AddListener(StartGame);
 
         changelvlButton.onClick.AddListener(DesactivateModale);
+
+        nextLvl.onClick.AddListener(NextLevel);
 
         ShowModale();
 
@@ -122,6 +129,22 @@ public class MainMenuManager : MonoBehaviour
 
     public void StartGame()
     {
-        UnityEngine.SceneManagement.SceneManager.LoadScene("Game");
+        string sceneName = "game" + currentLvlIndex;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+    }
+
+    private void NextLevel()
+    {
+        if (lvlInfosParent == null || lvlInfosParent.transform.childCount == 0)
+            return;
+
+        // Désactiver l'enfant actuel
+        lvlInfosParent.transform.GetChild(currentLvlIndex).gameObject.SetActive(false);
+
+        // Passer à l'enfant suivant (retour au début si on est sur le dernier)
+        currentLvlIndex = (currentLvlIndex + 1) % lvlInfosParent.transform.childCount;
+
+        // Activer le nouvel enfant
+        lvlInfosParent.transform.GetChild(currentLvlIndex).gameObject.SetActive(true);
     }
 }
