@@ -39,7 +39,6 @@ public abstract class PlaneBase : MonoBehaviour
     [SerializeField] private GameObject crashEffectPrefab;
     [SerializeField] private GameObject checkpointEffectPrefab;
 
-
     private float crashVibrationIntensity = 1f; // Intensité de la vibration au crash
     private float crashVibrationDuration = 2f; // Durée de la vibration en secondes
 
@@ -59,6 +58,7 @@ public abstract class PlaneBase : MonoBehaviour
 
     // Propriétés pour accéder aux constantes depuis les classes dérivées
     protected float Acceleration => acceleration;
+    protected float Deceleration => deceleration;
     protected float MaxSpeed => maxSpeed;
     protected float MinSpeed => minSpeed;
     protected float GravityInfluence => gravityInfluence;

@@ -22,10 +22,9 @@ public class PlaneControler : PlaneBase
     {
         if (gamepad == null) return;
 
-        // Trigger droit = accélérer, gauche = ralentir
+        // Trigger droit = accélérer, gauche = freiner/ralentir
         float accelTrigger = gamepad.rightTrigger.ReadValue();
         float brakeTrigger = gamepad.leftTrigger.ReadValue();
-        throttleInput = accelTrigger - brakeTrigger;
 
         // Stick gauche = pitch / roll
         Vector2 stick = gamepad.leftStick.ReadValue();
@@ -39,11 +38,26 @@ public class PlaneControler : PlaneBase
         pitchInput = smoothPitch;
         rollInput = smoothRoll;
 
-        // Ajuster la vitesse selon les triggers (seulement si l'accélération est autorisée)
-        if (canAccelerate)
+        // Gestion de la vitesse avec triggers séparés
+        // Accélération : seulement si on ne dépasse pas la vitesse max OU si on est en dessous
+        if (accelTrigger > 0f)
         {
-            currentSpeed += throttleInput * Acceleration * Time.fixedDeltaTime;
-            currentSpeed = Mathf.Clamp(currentSpeed, -MaxSpeed, MaxSpeed); // Vitesse peut être négative
+            // Ne prendre en compte l'accélération que si on est en dessous de la vitesse max
+            if (currentSpeed < MaxSpeed && canAccelerate)
+            {
+                currentSpeed += accelTrigger * Acceleration * Time.fixedDeltaTime;
+            }
+            // Si on dépasse MaxSpeed, on ignore simplement l'input d'accélération
+            // (la gravité peut toujours augmenter la vitesse)
         }
+
+        // Décélération : toujours appliquée avec la gâchette gauche
+        if (brakeTrigger > 0f)
+        {
+            currentSpeed -= brakeTrigger * Deceleration * Time.fixedDeltaTime;
+        }
+
+        // Clamp pour éviter les valeurs extrêmes (vitesse négative autorisée)
+        currentSpeed = Mathf.Clamp(currentSpeed, -MaxSpeed, MaxSpeed);
     }
 }
