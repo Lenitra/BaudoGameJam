@@ -25,7 +25,6 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _PERSPECTIVE
   - _WORLD_SPACE_UV
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -119,12 +118,12 @@ Material:
     - _NormalSpeed: 0.16
     - _NormalStrength: 1.71
     - _OrthographicCamSize: 0
-    - _PERSPECTIVE: 1
+    - _PERSPECTIVE: 0
     - _PosterizeSteps: 0
     - _QueueControl: 1
     - _QueueOffset: -49
     - _REFLECTIONS: 0
-    - _ReflectionBlend: 0.594
+    - _ReflectionBlend: 0
     - _ReflectionDistortion: 0.38
     - _RefractionScale: 10
     - _RefractionSpeed: 0.01

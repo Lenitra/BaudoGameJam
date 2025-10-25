@@ -18,6 +18,7 @@ public class MainMenuManager : MonoBehaviour
 
     [SerializeField] private Button nextLvl;
     [SerializeField] private GameObject lvlInfosParent;
+    [SerializeField] private Rotate planeRotation;
 
     private int currentLvlIndex = 0;
 
@@ -46,6 +47,12 @@ public class MainMenuManager : MonoBehaviour
     private void DesactivateModale()
     {
         changelvlButton.transform.parent.gameObject.SetActive(false);
+
+        // Réactiver la rotation de l'avion quand la modale est fermée
+        if (planeRotation != null)
+        {
+            planeRotation.gameObject.SetActive(true);
+        }
     }
 
     private void ShowModale()
@@ -58,11 +65,23 @@ public class MainMenuManager : MonoBehaviour
             {
                 modalMessage.text = "Gagné !";
                 changelvlButton.transform.parent.gameObject.SetActive(true);
+
+                // Désactiver la rotation de l'avion quand la modale est active
+                if (planeRotation != null)
+                {
+                    planeRotation.gameObject.SetActive(false);
+                }
             }
             else if (gameState == "lose")
             {
                 modalMessage.text = "Perdu !";
                 changelvlButton.transform.parent.gameObject.SetActive(true);
+
+                // Désactiver la rotation de l'avion quand la modale est active
+                if (planeRotation != null)
+                {
+                    planeRotation.gameObject.SetActive(false);
+                }
             }
 
             PlayerPrefs.DeleteKey("gamestate");
@@ -106,24 +125,47 @@ public class MainMenuManager : MonoBehaviour
 
     void Update()
     {
-        // Vérifier si n'importe quelle touche du clavier est pressée
-        if (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
+        // Détecter automatiquement si une manette est connectée et basculer par défaut
+        if (Gamepad.current != null && PlayerPrefs.GetString("InputMethod") != "Gamepad")
         {
-            StartGame();
+            PlayerPrefs.SetString("InputMethod", "Gamepad");
+            PlayerPrefs.Save();
+            ApplyGoodObject();
         }
 
-        // Vérifier si n'importe quel bouton de la manette est pressé
-        if (Gamepad.current != null && Gamepad.current.wasUpdatedThisFrame)
+        // Détecter automatiquement l'input de la manette et basculer vers le mode manette
+        if (Gamepad.current != null)
         {
             // Vérifier si un bouton quelconque est pressé
             if (Gamepad.current.buttonSouth.wasPressedThisFrame ||
                 Gamepad.current.buttonNorth.wasPressedThisFrame ||
                 Gamepad.current.buttonEast.wasPressedThisFrame ||
                 Gamepad.current.buttonWest.wasPressedThisFrame ||
-                Gamepad.current.startButton.wasPressedThisFrame)
+                Gamepad.current.startButton.wasPressedThisFrame ||
+                Gamepad.current.leftShoulder.wasPressedThisFrame ||
+                Gamepad.current.rightShoulder.wasPressedThisFrame ||
+                Gamepad.current.leftTrigger.wasPressedThisFrame ||
+                Gamepad.current.rightTrigger.wasPressedThisFrame ||
+                Gamepad.current.dpad.up.wasPressedThisFrame ||
+                Gamepad.current.dpad.down.wasPressedThisFrame ||
+                Gamepad.current.dpad.left.wasPressedThisFrame ||
+                Gamepad.current.dpad.right.wasPressedThisFrame)
             {
                 StartGame();
             }
+        }
+
+        // Vérifier si n'importe quelle touche du clavier est pressée
+        if (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame)
+        {
+            // Basculer automatiquement vers les contrôles clavier
+            if (PlayerPrefs.GetString("InputMethod") != "Keyboard")
+            {
+                PlayerPrefs.SetString("InputMethod", "Keyboard");
+                PlayerPrefs.Save();
+                ApplyGoodObject();
+            }
+            StartGame();
         }
     }
 
@@ -146,5 +188,7 @@ public class MainMenuManager : MonoBehaviour
 
         // Activer le nouvel enfant
         lvlInfosParent.transform.GetChild(currentLvlIndex).gameObject.SetActive(true);
+
+        planeRotation.OneFullRotate();
     }
 }

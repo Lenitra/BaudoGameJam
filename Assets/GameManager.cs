@@ -23,7 +23,7 @@ public class GameManager : MonoBehaviour
     public IEnumerator CrashSequence()
     {
         // Attendre un court instant avant de notifier la perte
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(2f);
         // Notifier le GameManager de la perte
         LooseGame();
     }

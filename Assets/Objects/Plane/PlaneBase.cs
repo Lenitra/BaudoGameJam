@@ -38,9 +38,14 @@ public abstract class PlaneBase : MonoBehaviour
     [Header("Visuals effects")]
     [SerializeField] private GameObject crashEffectPrefab;
     [SerializeField] private GameObject checkpointEffectPrefab;
+    [SerializeField] private Compass compass;
 
-    private float crashVibrationIntensity = 1f; // Intensité de la vibration au crash
-    private float crashVibrationDuration = 2f; // Durée de la vibration en secondes
+    [Header("Audio")]
+    [SerializeField] private AudioSource explosion1;
+    [SerializeField] private AudioSource explosion2;
+    [SerializeField] private AudioSource ambientSound;
+    [SerializeField] private AudioSource checkpointSound;
+    [SerializeField] private float fadeOutDuration = 2f;
 
     protected Rigidbody rb;
     protected float currentSpeed;
@@ -137,6 +142,12 @@ public abstract class PlaneBase : MonoBehaviour
         {
             checkpoints[0].SetActive(true);
             Debug.Log($"Activated first checkpoint: {checkpoints[0].name}");
+
+            // Définir le premier checkpoint comme cible de la boussole
+            if (compass != null)
+            {
+                compass.SetTarget(checkpoints[0]);
+            }
 
             // Activer le premier rollback s'il existe
             if (rollbackElements.Count > 0)
@@ -296,9 +307,9 @@ public abstract class PlaneBase : MonoBehaviour
     protected void UpdateUI()
     {
         if (speedText != null)
-            speedText.text = $"Speed: {Mathf.RoundToInt(currentSpeed)}";
+            speedText.text = $"{Mathf.RoundToInt(currentSpeed * 6.66f)}km/h";
         if (altitudeText != null)
-            altitudeText.text = $"Altitude: {Mathf.RoundToInt(transform.position.y)}";
+            altitudeText.text = $"Alt:{Mathf.RoundToInt(transform.position.y)}m/{maxAltitude}m";
     }
 
     // ------------------------------------------------------------
@@ -311,11 +322,16 @@ public abstract class PlaneBase : MonoBehaviour
         if (crashEffectPrefab != null)
             Instantiate(crashEffectPrefab, transform.position, Quaternion.identity);
 
-        // MEGA VIBRATION au crash !
-        if (gamepad != null)
-        {
-            StartCoroutine(CrashVibration());
-        }
+        // Jouer les sons d'explosion
+        if (explosion1 != null)
+            explosion1.Play();
+
+        if (explosion2 != null)
+            explosion2.Play();
+
+        // Faire un fondu du son ambiant
+        if (ambientSound != null)
+            StartCoroutine(FadeOutAmbientSound());
 
         // Sequence de crash qui notifie le GameManager
         if (gameManager != null)
@@ -341,21 +357,6 @@ public abstract class PlaneBase : MonoBehaviour
     }
 
     // ------------------------------------------------------------
-    // Coroutine pour la vibration de crash
-    // ------------------------------------------------------------
-    protected IEnumerator CrashVibration()
-    {
-        // Démarrer la vibration à intensité maximale
-        gamepad.SetMotorSpeeds(crashVibrationIntensity, crashVibrationIntensity);
-
-        // Attendre la durée définie
-        yield return new WaitForSeconds(crashVibrationDuration);
-
-        // Arrêter la vibration
-        gamepad.SetMotorSpeeds(0f, 0f);
-    }
-
-    // ------------------------------------------------------------
     // Gestion des triggers
     // ------------------------------------------------------------
     protected virtual void OnTriggerEnter(Collider other)
@@ -370,6 +371,12 @@ public abstract class PlaneBase : MonoBehaviour
                 if (checkpointEffectPrefab != null)
                 {
                     Instantiate(checkpointEffectPrefab, other.transform.position, Quaternion.identity);
+                }
+
+                // Jouer le son de validation du checkpoint
+                if (checkpointSound != null)
+                {
+                    checkpointSound.Play();
                 }
 
                 Debug.Log($"Checkpoint passed: {checkpoints[currentCheckpointIndex].name}");
@@ -394,6 +401,12 @@ public abstract class PlaneBase : MonoBehaviour
                     checkpoints[currentCheckpointIndex].SetActive(true);
                     Debug.Log($"Activated next checkpoint: {checkpoints[currentCheckpointIndex].name}");
 
+                    // Définir le nouveau checkpoint comme cible de la boussole
+                    if (compass != null)
+                    {
+                        compass.SetTarget(checkpoints[currentCheckpointIndex]);
+                    }
+
                     // Activer le prochain rollback s'il existe
                     if (rollbackElements.Count > 0 && currentRollbackIndex < rollbackElements.Count)
                     {
@@ -404,6 +417,13 @@ public abstract class PlaneBase : MonoBehaviour
                 else
                 {
                     Debug.Log("All checkpoints completed!");
+
+                    // Désactiver la boussole car il n'y a plus de checkpoints
+                    if (compass != null)
+                    {
+                        compass.gameObject.SetActive(false);
+                    }
+
                     if (gameManager != null)
                     {
                         gameManager.WinGame();
@@ -413,5 +433,25 @@ public abstract class PlaneBase : MonoBehaviour
         }
     }
 
+    // ------------------------------------------------------------
+    // Fondu du son ambiant
+    // ------------------------------------------------------------
+    protected IEnumerator FadeOutAmbientSound()
+    {
+        if (ambientSound == null)
+            yield break;
 
+        float startVolume = ambientSound.volume;
+        float elapsedTime = 0f;
+
+        while (elapsedTime < fadeOutDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            ambientSound.volume = Mathf.Lerp(startVolume, 0f, elapsedTime / fadeOutDuration);
+            yield return null;
+        }
+
+        ambientSound.volume = 0f;
+        ambientSound.Stop();
+    }
 }

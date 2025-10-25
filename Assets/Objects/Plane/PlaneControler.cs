@@ -57,7 +57,7 @@ public class PlaneControler : PlaneBase
             currentSpeed -= brakeTrigger * Deceleration * Time.fixedDeltaTime;
         }
 
-        // Clamp pour éviter les valeurs extrêmes (vitesse négative autorisée)
-        currentSpeed = Mathf.Clamp(currentSpeed, -MaxSpeed, MaxSpeed);
+        // Note: Pas de clamp ici pour permettre à la gravité de dépasser MaxSpeed
+        // Le clamp global est géré dans HandleGravityByIncline() avec maxSpeed * 1.5f
     }
 }
